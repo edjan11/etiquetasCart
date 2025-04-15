@@ -15,7 +15,8 @@ function gerarEtiqueta(comunicado) {
     pais,
     data_termo,
     observacoes,
-    genero_registro
+    genero_registro,
+    nome_registrado
   } = comunicado;
 
   const parte1 = `Foi comunicado pelo Cartório de ${cartorio_emitente || '[---]'}, código ${codigo || '[---]'}, ${assento_completo || '[---]'}`;
@@ -30,6 +31,7 @@ function gerarEtiqueta(comunicado) {
   : null;
 
     const origemOficio = cartorio_origem || '';
+    console.log(nome_registrado); // deve exibir "JOSÉ MARIA" ou "ANA CLARA"
 
 
   const parte2 = [

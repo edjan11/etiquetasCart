@@ -45,6 +45,25 @@ function extrairCampos(bloco) {
   const oficiosValidos = ['6', '12', '13', '14', '15', '24', '25', '26', '29'];
   const cartorioOrigemMatch = matchOficio && oficiosValidos.includes(matchOficio[1]) ? matchOficio : null;
   
+
+  const nome1 = match(/casamento civil de:\s*([A-ZÀ-Ú\s']+?)(?:,|\s+o qual)/i);
+  const nome2 = match(/e\s+([\s\S]+?)(?:,)?\s+a qual/i);
+
+const nome_registrado = (() => {
+  if (genero_registro === 'dele') {
+    const matchNome = bloco.match(/casamento civil de:\s*([^\n,]+),\s+o qual/i);
+    return matchNome?.[1]?.trim() ?? nome1;
+  }
+  if (genero_registro === 'dela') {
+    const matchNome = bloco.match(/e\s+([^\n,]+),\s+a qual/i);
+    return matchNome?.[1]?.trim() ?? nome2;
+  }
+  return '';
+})();
+
+  
+
+
   return {
     cartorio_emitente: match(/Comunica[cç][aã]o de Casamento Civil\s+(.+?)\s+Ao/i),
     codigo: match(/Código da comunicação:\s*(\d{5,})/i),
@@ -53,9 +72,7 @@ function extrairCampos(bloco) {
     folha: match(/folhas\s+([\w]+)/i),
     termo: match(/termo\s+(\d{3,})/i),
 
-    nome1: match(/casamento civil de:\s*([\s\S]+?),\s+o qual/i),
     novo_nome1: match(/o qual passou a assinar:\s*([\s\S]+?)(?=,| e|\.)/i),
-    nome2: match(/e\s+([\s\S]+?),\s+a qual/i),
     novo_nome2: match(/a qual passou a assinar:\s*([\s\S]+?)(?=\.|,| e)/i),
 
     pais: match(/filh[ao] de\s*([\s\S]+? e [^\n,\.]+)/i),
@@ -71,6 +88,7 @@ function extrairCampos(bloco) {
     folha_origem: folhaOrigemMatch?.[1] || '',
     termo_origem: termoOrigemMatch?.[1] ?? '',
     
+    nome_registrado,
     genero_registro,
     cartorio_origem: cartorioOrigemMatch?.[1] ?? '',
     assento_completo,

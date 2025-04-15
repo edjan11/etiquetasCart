@@ -1,27 +1,137 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Comunicados</title>
   <style>
     body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
-    form { margin-bottom: 20px; }
+    form { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
     .comunicado { background: #fff; padding: 15px; border-left: 4px solid #2196f3; margin-bottom: 10px; }
-    .parte2 { margin-top: 10px; font-style: italic; }
+    .parte2 { margin-top: 10px; font-style: italic; white-space: pre-line; }
     .erros { color: red; font-weight: bold; margin-top: 10px; }
     .resumo-erros { background: #ffeaea; padding: 10px; border: 1px solid #f00; margin-top: 30px; }
+    .extra { margin-top: 10px; }
+    button.copiar { margin-left: 10px; font-size: 12px; }
   </style>
 </head>
 <body>
   <h1>Processador de Comunicados</h1>
+
   <form id="formUpload">
     <input type="file" name="pdf" accept="application/pdf" required />
+    <select id="escreventeSelect">
+      <option value="">Selecionar escrevente</option>
+      <option value="Edjan Santos Melo">Edjan Santos Melo</option>
+      <option value="Gabriela Maria Gama de Almeida">Gabriela Maria Gama de Almeida</option>
+    </select>
     <button type="submit">Enviar PDF</button>
   </form>
+
   <div id="resultados"></div>
   <div id="resumoErros"></div>
+
   <script>
     const form = document.getElementById('formUpload');
+    const selectEscrevente = document.getElementById('escreventeSelect');
+    let escreventeSelecionado = '';
+
+    selectEscrevente.addEventListener('change', (e) => {
+      escreventeSelecionado = e.target.value;
+    });
+
+    function adicionarCartorio(btn) {
+      const input = btn.parentElement.querySelector('.input-cartorio');
+      const valor = input.value.trim();
+
+      if (!valor) {
+        alert('Preencha o cartório antes de adicionar.');
+        return;
+      }
+
+      const comunicadoDiv = btn.closest('.comunicado');
+      const parte2Div = comunicadoDiv.querySelector('.parte2');
+
+      if (parte2Div && !parte2Div.textContent.includes('Cartório de origem:')) {
+        parte2Div.textContent += `\nCartório de origem: ${valor}`;
+      }
+
+      // Remove erro se existir
+      const erroDiv = comunicadoDiv.querySelector('.erros');
+      if (erroDiv && erroDiv.textContent.includes('Cartório de origem ausente')) {
+        erroDiv.remove();
+      }
+
+      // Troca botão ➕ por ✏️
+      btn.textContent = '✏️ Editar cartório';
+      btn.onclick = () => editarCartorio(btn, valor);
+    }
+
+    function editarCartorio(btn, valorAntigo) {
+      const container = btn.parentElement;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = valorAntigo;
+      input.className = 'input-cartorio';
+
+      const salvarBtn = document.createElement('button');
+      salvarBtn.textContent = '✅ Salvar';
+      salvarBtn.onclick = () => salvarCartorio(salvarBtn, input.value, valorAntigo);
+
+      container.insertBefore(input, btn);
+      container.insertBefore(salvarBtn, btn);
+      btn.remove();
+    }
+
+    function salvarCartorio(btn, novoValor, valorAntigo) {
+      const comunicadoDiv = btn.closest('.comunicado');
+      const parte2Div = comunicadoDiv.querySelector('.parte2');
+
+      parte2Div.textContent = parte2Div.textContent.replace(
+        `Cartório de origem: ${valorAntigo}`,
+        `Cartório de origem: ${novoValor}`
+      );
+
+      // Limpa inputs antigos
+      const container = btn.parentElement;
+      container.querySelectorAll('.input-cartorio').forEach(el => el.remove());
+      btn.remove();
+
+      // Volta botão de editar com novo valor
+      const editarBtn = document.createElement('button');
+      editarBtn.textContent = '✏️ Editar cartório';
+      editarBtn.onclick = () => editarCartorio(editarBtn, novoValor);
+      container.appendChild(editarBtn);
+    }
+
+
+    function copiarNome(event, nome) {
+      const btn = event.target;
+
+      if (!nome) {
+        btn.textContent = '❌ Nome não encontrado';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = '📋 Copiar nome';
+          btn.disabled = false;
+          btn.style.backgroundColor = '';
+        }, 2500);
+        return;
+      }
+
+      navigator.clipboard.writeText(nome).then(() => {
+        const original = btn.textContent;
+        btn.textContent = '✅ Copiado!';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.disabled = false;
+          btn.style.backgroundColor = '';
+        }, 2000);
+      }).catch(err => {
+        console.error('Erro ao copiar:', err);
+      });
+    }
+
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
@@ -29,22 +139,70 @@
         method: 'POST',
         body: formData
       });
+
       const { comunicados, erros } = await response.json();
       const container = document.getElementById('resultados');
       const resumo = document.getElementById('resumoErros');
       container.innerHTML = '';
       resumo.innerHTML = '';
-      comunicados.forEach(com => {
+
+      comunicados.forEach((com) => {
         const div = document.createElement('div');
         div.className = 'comunicado';
-        div.innerHTML = `<div>${com.parte1}</div><div class="parte2">${com.parte2}</div>` +
-        (com.erros.length ? `<div class="erros">⚠️ ${com.erros.join(', ')}</div>` : '');
+
+        // Parte 1 com Dou fé junto
+        const parte1El = document.createElement('div');
+        parte1El.className = 'parte1';
+        parte1El.innerHTML = `${com.parte1}${escreventeSelecionado ? ` Dou fé, ${escreventeSelecionado}.` : ''}`;
+        div.appendChild(parte1El);
+
+        // Parte 2 (registro anterior, filiação, etc)
+        const parte2El = document.createElement('div');
+        parte2El.className = 'parte2';
+        parte2El.textContent = com.parte2;
+        div.appendChild(parte2El);
+
+        // Adiciona campo extra se houver erro
+        const temErroCartorio = com.erros.includes('Cartório de origem ausente');
+        if (temErroCartorio) {
+          const extra = document.createElement('div');
+          extra.className = 'extra';
+
+          const nomeRegistrado = com.genero_registro === 'dela' ? com.nome2 : com.nome1;
+
+          extra.innerHTML = `
+            <label>Cartório de origem: 
+              <input type="text" class="input-cartorio" placeholder="Ex: 13º Ofício" />
+            </label>
+            <button onclick="adicionarCartorio(this)">➕ Adicionar cartório</button>
+            <button class="copiar" onclick="copiarNome(event, '${com.nome_registrado?.replace(/'/g, "\\'") || ''}')">
+              📋 Nome do Registrado
+            </button>
+          `;
+
+
+          div.appendChild(extra);
+        }
+
+        // Exibe os erros
+        if (com.erros.length) {
+          const errosEl = document.createElement('div');
+          errosEl.className = 'erros';
+          errosEl.textContent = `⚠️ ${com.erros.join(', ')}`;
+          div.appendChild(errosEl);
+        }
+
         container.appendChild(div);
       });
+
+
+
       if (erros.length) {
-        resumo.innerHTML = `<div class="resumo-erros"><strong>${erros.length} comunicado(s) com erros:</strong><br>` +
-          erros.map(e => `📦 COMUNICADO ${e.id}: ${e.erros.join(', ')}`).join('<br>') +
-          `</div>`;
+        resumo.innerHTML = `
+          <div class="resumo-erros">
+            <strong>${erros.length} comunicado(s) com erros:</strong><br>
+            ${erros.map(e => `📦 COMUNICADO ${e.id}: ${e.erros.join(', ')}`).join('<br>')}
+          </div>`;
       }
     });
   </script>
