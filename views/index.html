@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -10,8 +11,10 @@
     .parte2 { margin-top: 10px; font-style: italic; white-space: pre-line; }
     .erros { color: red; font-weight: bold; margin-top: 10px; }
     .resumo-erros { background: #ffeaea; padding: 10px; border: 1px solid #f00; margin-top: 30px; }
-    .extra { margin-top: 10px; }
-    button.copiar { margin-left: 10px; font-size: 12px; }
+    .extra { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
+    .btn-group { display: flex; gap: 6px; margin-top: 8px; }
+    .input-cartorio { padding: 4px; }
+    .content-editable { border: 1px dashed #aaa; padding: 4px; background: #fffde7; cursor: text; }
   </style>
 </head>
 <body>
@@ -25,6 +28,7 @@
       <option value="Gabriela Maria Gama de Almeida">Gabriela Maria Gama de Almeida</option>
     </select>
     <button type="submit">Enviar PDF</button>
+    <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
   </form>
 
   <div id="resultados"></div>
@@ -39,29 +43,45 @@
       escreventeSelecionado = e.target.value;
     });
 
+    function copiarNome(event, nome) {
+      const btn = event.target;
+
+      if (!nome) {
+        btn.textContent = '❌ Nome não encontrado';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = '📋 Nome do Registrado';
+          btn.disabled = false;
+        }, 2500);
+        return;
+      }
+
+      navigator.clipboard.writeText(nome).then(() => {
+        const original = btn.textContent;
+        btn.textContent = '✅ Copiado!';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = original;
+          btn.disabled = false;
+        }, 2000);
+      }).catch(err => console.error('Erro ao copiar:', err));
+    }
+
     function adicionarCartorio(btn) {
       const input = btn.parentElement.querySelector('.input-cartorio');
       const valor = input.value.trim();
-
-      if (!valor) {
-        alert('Preencha o cartório antes de adicionar.');
-        return;
-      }
+      if (!valor) return alert('Preencha o cartório.');
 
       const comunicadoDiv = btn.closest('.comunicado');
       const parte2Div = comunicadoDiv.querySelector('.parte2');
 
-      if (parte2Div && !parte2Div.textContent.includes('Cartório de origem:')) {
+      if (!parte2Div.textContent.includes('Cartório de origem:')) {
         parte2Div.textContent += `\nCartório de origem: ${valor}`;
       }
 
-      // Remove erro se existir
       const erroDiv = comunicadoDiv.querySelector('.erros');
-      if (erroDiv && erroDiv.textContent.includes('Cartório de origem ausente')) {
-        erroDiv.remove();
-      }
+      if (erroDiv?.textContent.includes('Cartório de origem ausente')) erroDiv.remove();
 
-      // Troca botão ➕ por ✏️
       btn.textContent = '✏️ Editar cartório';
       btn.onclick = () => editarCartorio(btn, valor);
     }
@@ -85,62 +105,37 @@
     function salvarCartorio(btn, novoValor, valorAntigo) {
       const comunicadoDiv = btn.closest('.comunicado');
       const parte2Div = comunicadoDiv.querySelector('.parte2');
-
       parte2Div.textContent = parte2Div.textContent.replace(
         `Cartório de origem: ${valorAntigo}`,
         `Cartório de origem: ${novoValor}`
       );
 
-      // Limpa inputs antigos
       const container = btn.parentElement;
       container.querySelectorAll('.input-cartorio').forEach(el => el.remove());
       btn.remove();
 
-      // Volta botão de editar com novo valor
       const editarBtn = document.createElement('button');
       editarBtn.textContent = '✏️ Editar cartório';
       editarBtn.onclick = () => editarCartorio(editarBtn, novoValor);
       container.appendChild(editarBtn);
     }
 
-
-    function copiarNome(event, nome) {
-      const btn = event.target;
-
-      if (!nome) {
-        btn.textContent = '❌ Nome não encontrado';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = '📋 Copiar nome';
-          btn.disabled = false;
-          btn.style.backgroundColor = '';
-        }, 2500);
-        return;
+    function toggleEditar(div) {
+      const content = div.querySelector('.editable');
+      if (content.contentEditable === 'true') {
+        content.contentEditable = 'false';
+      } else {
+        content.contentEditable = 'true';
+        content.focus();
       }
-
-      navigator.clipboard.writeText(nome).then(() => {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copiado!';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = original;
-          btn.disabled = false;
-          btn.style.backgroundColor = '';
-        }, 2000);
-      }).catch(err => {
-        console.error('Erro ao copiar:', err);
-      });
     }
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
-      const response = await fetch('/upload', {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch('/upload', { method: 'POST', body: formData });
       const { comunicados, erros } = await response.json();
+
       const container = document.getElementById('resultados');
       const resumo = document.getElementById('resumoErros');
       container.innerHTML = '';
@@ -150,41 +145,45 @@
         const div = document.createElement('div');
         div.className = 'comunicado';
 
-        // Parte 1 com Dou fé junto
         const parte1El = document.createElement('div');
-        parte1El.className = 'parte1';
+        parte1El.className = 'editable content-editable';
         parte1El.innerHTML = `${com.parte1}${escreventeSelecionado ? ` Dou fé, ${escreventeSelecionado}.` : ''}`;
         div.appendChild(parte1El);
 
-        // Parte 2 (registro anterior, filiação, etc)
         const parte2El = document.createElement('div');
         parte2El.className = 'parte2';
         parte2El.textContent = com.parte2;
         div.appendChild(parte2El);
 
-        // Adiciona campo extra se houver erro
-        const temErroCartorio = com.erros.includes('Cartório de origem ausente');
-        if (temErroCartorio) {
-          const extra = document.createElement('div');
-          extra.className = 'extra';
+        const btnGroup = document.createElement('div');
+        btnGroup.className = 'btn-group';
 
-          const nomeRegistrado = com.genero_registro === 'dela' ? com.nome2 : com.nome1;
+        const btnEditar = document.createElement('button');
+        btnEditar.textContent = '📝 Editar texto';
+        btnEditar.onclick = () => toggleEditar(div);
+        btnGroup.appendChild(btnEditar);
 
-          extra.innerHTML = `
-            <label>Cartório de origem: 
-              <input type="text" class="input-cartorio" placeholder="Ex: 13º Ofício" />
-            </label>
-            <button onclick="adicionarCartorio(this)">➕ Adicionar cartório</button>
-            <button class="copiar" onclick="copiarNome(event, '${com.nome_registrado?.replace(/'/g, "\\'") || ''}')">
-              📋 Nome do Registrado
-            </button>
-          `;
+        if (com.erros.includes('Cartório de origem ausente')) {
+          const input = document.createElement('input');
+          input.className = 'input-cartorio';
+          input.placeholder = 'Ex: 13º Ofício';
 
+          const btnAdd = document.createElement('button');
+          btnAdd.textContent = '➕ Adicionar cartório';
+          btnAdd.onclick = () => adicionarCartorio(btnAdd);
 
-          div.appendChild(extra);
+          const btnCopiar = document.createElement('button');
+          btnCopiar.className = 'copiar';
+          btnCopiar.textContent = '📋 Nome do Registrado';
+          btnCopiar.onclick = (e) => copiarNome(e, com.nome_registrado);
+
+          btnGroup.appendChild(input);
+          btnGroup.appendChild(btnAdd);
+          btnGroup.appendChild(btnCopiar);
         }
 
-        // Exibe os erros
+        div.appendChild(btnGroup);
+
         if (com.erros.length) {
           const errosEl = document.createElement('div');
           errosEl.className = 'erros';
@@ -195,15 +194,40 @@
         container.appendChild(div);
       });
 
-
-
       if (erros.length) {
-        resumo.innerHTML = `
-          <div class="resumo-erros">
-            <strong>${erros.length} comunicado(s) com erros:</strong><br>
-            ${erros.map(e => `📦 COMUNICADO ${e.id}: ${e.erros.join(', ')}`).join('<br>')}
-          </div>`;
+        resumo.innerHTML = `<div class="resumo-erros">
+          <strong>${erros.length} comunicado(s) com erros:</strong><br>
+          ${erros.map(e => `📦 COMUNICADO ${e.id}: ${e.erros.join(', ')}`).join('<br>')}
+        </div>`;
       }
+
+      document.getElementById('exportarPDF').addEventListener('click', async () => {
+        const blocos = Array.from(document.querySelectorAll('.comunicado'));
+        const comunicados = blocos.map(div => {
+          const parte1 = div.querySelector('.editable')?.textContent || '';
+          const parte2 = div.querySelector('.parte2')?.textContent || '';
+          return { texto: `${parte1}\n${parte2}` };
+        });
+
+        const response = await fetch('/gerar-etiquetas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comunicados })
+        });
+
+        if (response.ok) {
+          const blob = await response.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'etiquetas.pdf';
+          a.click();
+        } else {
+          alert('Erro ao gerar etiquetas.');
+        }
+      });
+
+
     });
   </script>
 </body>

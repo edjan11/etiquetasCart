@@ -5,6 +5,7 @@ function separarComunicados(texto) {
     .filter(Boolean);
 }
 
+
 function extrairCampos(bloco) {
   const match = (regex, fallback = '') => {
     const m = bloco.match(regex);
@@ -12,8 +13,14 @@ function extrairCampos(bloco) {
   };
 
   
-  const assento_completo = match(/(Aos\s+\d{2}\/\d{2}\/\d{4}[\s\S]+?)(?=\s*(Ele|Ela|Registro|OBSERVAÇÕES|Aracaju|Em Branco|$))/i);
-  const trechoOrigem = assento_completo ? bloco.split(assento_completo)[1] : bloco;
+  const matchAssento = bloco.match(/(Aos\s+\d{2}\/\d{2}\/\d{4}[\s\S]+?)(?=\s*(Ele|Ela|Registro|OBSERVAÇÕES|Aracaju|Em Branco|$))/i);
+  const assento_completo = matchAssento ? matchAssento[1].trim() : null;
+  
+  // insere a quebra de linha depois do trecho capturado
+  const trechoOrigem = assento_completo
+    ? bloco.replace(assento_completo, assento_completo + '\n\n')
+    : bloco;
+  
   
   const genero_registro = (() => {
     const trechoAposAssento = assento_completo ? bloco.split(assento_completo)[1] : '';
@@ -46,16 +53,16 @@ function extrairCampos(bloco) {
   const cartorioOrigemMatch = matchOficio && oficiosValidos.includes(matchOficio[1]) ? matchOficio : null;
   
 
-  const nome1 = match(/casamento civil de:\s*([A-ZÀ-Ú\s']+?)(?:,|\s+o qual)/i);
+  const nome1 = match(/casamento civil de:\s*([\s\S]+?)(?:,|\s+o qual)/i);
   const nome2 = match(/e\s+([\s\S]+?)(?:,)?\s+a qual/i);
 
 const nome_registrado = (() => {
   if (genero_registro === 'dele') {
-    const matchNome = bloco.match(/casamento civil de:\s*([^\n,]+),\s+o qual/i);
+    const matchNome = bloco.match(/casamento civil de:\s*([\s\S]+?),\s+o qual/i);
     return matchNome?.[1]?.trim() ?? nome1;
   }
   if (genero_registro === 'dela') {
-    const matchNome = bloco.match(/e\s+([^\n,]+),\s+a qual/i);
+    const matchNome = bloco.match(/casamento civil de:\s*([\s\S]+?),\s+o qual/i);
     return matchNome?.[1]?.trim() ?? nome2;
   }
   return '';
