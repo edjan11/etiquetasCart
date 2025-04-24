@@ -1,20 +1,23 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <title>Comunicados</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
-    form { margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-    .comunicado { background: #fff; padding: 15px; border-left: 4px solid #2196f3; margin-bottom: 10px; }
-    .parte2 { margin-top: 10px; font-style: italic; white-space: pre-line; }
-    .erros { color: red; font-weight: bold; margin-top: 10px; }
-    .resumo-erros { background: #ffeaea; padding: 10px; border: 1px solid #f00; margin-top: 30px; }
-    .extra { margin-top: 10px; display: flex; align-items: center; gap: 10px; }
-    .btn-group { display: flex; gap: 6px; margin-top: 8px; }
-    .input-cartorio { padding: 4px; }
-    .content-editable { border: 1px dashed #aaa; padding: 4px; background: #fffde7; cursor: text; }
+    :root { --colors: #4fc3f7,#81c784,#ffb74d,#ba68c8,#ff8a65; }
+    body { font-family: sans-serif; padding: 20px; background: #f0f2f5; }
+    form, #ferramentas { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; align-items: center; }
+    #resultados { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 15px; }
+    .comunicado { position: relative; background: #fff; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); padding: 20px; border-left: 6px solid; transition: transform .2s, opacity .3s; }
+    .comunicado:hover { transform: translateY(-3px); }
+    .comunicado.completed { opacity: .6; background: #e8f5e9; text-decoration: line-through; }
+    .numero { position: absolute; top: 12px; right: 16px; font-weight: bold; color: #555; }
+    .badge { display:inline-block; padding:2px 6px; font-size:12px; border-radius:4px; color:#fff; margin-left:8px; }
+    .badge.pendente { background:#f44336; } .badge.concluido { background:#4caf50; }
+    .content-editable { border:1px dashed #aaa; padding:6px; background:#fffde7; cursor:text; }
+    .parte2 { margin-top:12px; font-style:italic; white-space:pre-line; }
+    .btn-group { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+    .input-cartorio { padding:4px; flex:1; }
   </style>
 </head>
 <body>
@@ -24,211 +27,249 @@
     <input type="file" name="pdf" accept="application/pdf" required />
     <select id="escreventeSelect">
       <option value="">Selecionar escrevente</option>
-      <option value="Edjan Santos Melo">Edjan Santos Melo</option>
-      <option value="Gabriela Maria Gama de Almeida">Gabriela Maria Gama de Almeida</option>
+      <option>Edjan Santos Melo</option>
+      <option>Gabriela Maria Gama de Almeida</option>
     </select>
     <button type="submit">Enviar PDF</button>
     <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
   </form>
 
+  <div id="ferramentas">
+    <input id="buscaComunicados" placeholder="🔍 Buscar..." />
+    <button id="filtroPendentes">Mostrar só pendentes</button>
+  </div>
+
   <div id="resultados"></div>
   <div id="resumoErros"></div>
 
   <script>
+    const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors')
+      .split(',').map(c => c.trim());
     const form = document.getElementById('formUpload');
-    const selectEscrevente = document.getElementById('escreventeSelect');
-    let escreventeSelecionado = '';
+    const select = document.getElementById('escreventeSelect');
+    const busca = document.getElementById('buscaComunicados');
+    const filtroBtn = document.getElementById('filtroPendentes');
+    const container = document.getElementById('resultados');
+    let escrevente = '', pendentesOnly = false;
 
-    selectEscrevente.addEventListener('change', (e) => {
-      escreventeSelecionado = e.target.value;
+    select.addEventListener('change', e => escrevente = e.target.value);
+    filtroBtn.addEventListener('click', () => {
+      pendentesOnly = !pendentesOnly;
+      filtroBtn.textContent = pendentesOnly ? 'Mostrar todos' : 'Mostrar só pendentes';
+      filtrar();
     });
+    busca.addEventListener('input', filtrar);
 
-    function copiarNome(event, nome) {
-      const btn = event.target;
-
-      if (!nome) {
-        btn.textContent = '❌ Nome não encontrado';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = '📋 Nome do Registrado';
-          btn.disabled = false;
-        }, 2500);
-        return;
-      }
-
-      navigator.clipboard.writeText(nome).then(() => {
-        const original = btn.textContent;
-        btn.textContent = '✅ Copiado!';
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = original;
-          btn.disabled = false;
-        }, 2000);
-      }).catch(err => console.error('Erro ao copiar:', err));
+    function carregarCompletos() {
+      return JSON.parse(localStorage.getItem('completos')||'[]');
+    }
+    function salvarCompletos(list) {
+      localStorage.setItem('completos', JSON.stringify(list));
+    }
+    function filtrar() {
+      const q = busca.value.toLowerCase();
+      document.querySelectorAll('.comunicado').forEach(div => {
+        const texto = div.textContent.toLowerCase();
+        const isDone = div.classList.contains('completed');
+        div.style.display = (texto.includes(q) && (!pendentesOnly || !isDone)) ? '' : 'none';
+      });
     }
 
-    function adicionarCartorio(btn) {
-      const input = btn.parentElement.querySelector('.input-cartorio');
-      const valor = input.value.trim();
-      if (!valor) return alert('Preencha o cartório.');
-
-      const comunicadoDiv = btn.closest('.comunicado');
-      const parte2Div = comunicadoDiv.querySelector('.parte2');
-
-      if (!parte2Div.textContent.includes('Cartório de origem:')) {
-        parte2Div.textContent += `\nCartório de origem: ${valor}`;
-      }
-
-      const erroDiv = comunicadoDiv.querySelector('.erros');
-      if (erroDiv?.textContent.includes('Cartório de origem ausente')) erroDiv.remove();
-
-      btn.textContent = '✏️ Editar cartório';
-      btn.onclick = () => editarCartorio(btn, valor);
+    function toggleConcluido(div, id, btn) {
+      const lista = carregarCompletos();
+      const idx = lista.indexOf(id);
+      const done = idx > -1;
+      if (done) lista.splice(idx,1); else lista.push(id);
+      salvarCompletos(lista);
+      div.classList.toggle('completed', !done);
+      btn.textContent = done ? '✅ Concluir' : '🔄 Desmarcar';
+      filtrar();
     }
 
-    function editarCartorio(btn, valorAntigo) {
-      const container = btn.parentElement;
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.value = valorAntigo;
-      input.className = 'input-cartorio';
-
-      const salvarBtn = document.createElement('button');
-      salvarBtn.textContent = '✅ Salvar';
-      salvarBtn.onclick = () => salvarCartorio(salvarBtn, input.value, valorAntigo);
-
-      container.insertBefore(input, btn);
-      container.insertBefore(salvarBtn, btn);
-      btn.remove();
-    }
-
-    function salvarCartorio(btn, novoValor, valorAntigo) {
-      const comunicadoDiv = btn.closest('.comunicado');
-      const parte2Div = comunicadoDiv.querySelector('.parte2');
-      parte2Div.textContent = parte2Div.textContent.replace(
-        `Cartório de origem: ${valorAntigo}`,
-        `Cartório de origem: ${novoValor}`
-      );
-
-      const container = btn.parentElement;
-      container.querySelectorAll('.input-cartorio').forEach(el => el.remove());
-      btn.remove();
-
-      const editarBtn = document.createElement('button');
-      editarBtn.textContent = '✏️ Editar cartório';
-      editarBtn.onclick = () => editarCartorio(editarBtn, novoValor);
-      container.appendChild(editarBtn);
-    }
-
-    function toggleEditar(div) {
-      const content = div.querySelector('.editable');
-      if (content.contentEditable === 'true') {
-        content.contentEditable = 'false';
-      } else {
-        content.contentEditable = 'true';
-        content.focus();
-      }
-    }
-
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener('submit', async e => {
       e.preventDefault();
-      const formData = new FormData(form);
-      const response = await fetch('/upload', { method: 'POST', body: formData });
-      const { comunicados, erros } = await response.json();
-
-      const container = document.getElementById('resultados');
-      const resumo = document.getElementById('resumoErros');
+      const res = await fetch('/upload',{ method:'POST', body:new FormData(form) });
+      const { comunicados, erros } = await res.json();
       container.innerHTML = '';
-      resumo.innerHTML = '';
+      document.getElementById('resumoErros').innerHTML = '';
 
-      comunicados.forEach((com) => {
+      const completos = carregarCompletos();
+
+      comunicados.forEach((com, i) => {
         const div = document.createElement('div');
         div.className = 'comunicado';
+        div.dataset.id = com.id;
+        if (completos.includes(com.id)) div.classList.add('completed');
+        div.style.borderLeftColor = cores[i % cores.length];
 
-        const parte1El = document.createElement('div');
-        parte1El.className = 'editable content-editable';
-        parte1El.innerHTML = `${com.parte1}${escreventeSelecionado ? ` Dou fé, ${escreventeSelecionado}.` : ''}`;
-        div.appendChild(parte1El);
+        const num = document.createElement('span');
+        num.className = 'numero';
+        num.textContent = `#${i+1}`;
+        div.appendChild(num);
 
-        const parte2El = document.createElement('div');
-        parte2El.className = 'parte2';
-        parte2El.textContent = com.parte2;
-        div.appendChild(parte2El);
+        const badge = document.createElement('span');
+        badge.className = 'badge ' + (completos.includes(com.id)?'concluido':'pendente');
+        badge.textContent = completos.includes(com.id)?'Concluído':'Pendente';
+        num.after(badge);
 
-        const btnGroup = document.createElement('div');
-        btnGroup.className = 'btn-group';
+        const p1 = document.createElement('div');
+        p1.className = 'content-editable';
+        p1.contentEditable = 'false';
+        p1.innerHTML = `${com.parte1}${escrevente?` Dou fé, ${escrevente}.`:''}`;
+        div.appendChild(p1);
 
-        const btnEditar = document.createElement('button');
-        btnEditar.textContent = '📝 Editar texto';
-        btnEditar.onclick = () => toggleEditar(div);
-        btnGroup.appendChild(btnEditar);
+        const p2 = document.createElement('div');
+        p2.className = 'parte2';
+        p2.textContent = com.parte2;
+        div.appendChild(p2);
+
+        const grupo = document.createElement('div');
+        grupo.className = 'btn-group';
+
+        const btE = document.createElement('button');
+        btE.textContent = '📝 Editar';
+        btE.onclick = () => {
+          const ed = p1.contentEditable === 'true';
+          p1.contentEditable = ed ? 'false':'true';
+          if (!ed) p1.focus();
+        };
+        grupo.appendChild(btE);
+
+        const btC = document.createElement('button');
+        btC.textContent = completos.includes(com.id)?'🔄 Desmarcar':'✅ Concluir';
+        btC.onclick = () => toggleConcluido(div, com.id, btC);
+        grupo.appendChild(btC);
 
         if (com.erros.includes('Cartório de origem ausente')) {
-          const input = document.createElement('input');
-          input.className = 'input-cartorio';
-          input.placeholder = 'Ex: 13º Ofício';
+          const inp = document.createElement('input');
+          inp.className = 'input-cartorio';
+          inp.placeholder = 'Ex: 13º Ofício';
+          grupo.appendChild(inp);
 
-          const btnAdd = document.createElement('button');
-          btnAdd.textContent = '➕ Adicionar cartório';
-          btnAdd.onclick = () => adicionarCartorio(btnAdd);
+          const btA = document.createElement('button');
+          btA.textContent = '➕ Cartório';
+          btA.onclick = () => adicionarCartorio(btA);
+          grupo.appendChild(btA);
 
-          const btnCopiar = document.createElement('button');
-          btnCopiar.className = 'copiar';
-          btnCopiar.textContent = '📋 Nome do Registrado';
-          btnCopiar.onclick = (e) => copiarNome(e, com.nome_registrado);
-
-          btnGroup.appendChild(input);
-          btnGroup.appendChild(btnAdd);
-          btnGroup.appendChild(btnCopiar);
+          const btCp = document.createElement('button');
+          btCp.textContent = '📋 Nome';
+          btCp.onclick = e => copiarNome(e, com.nome_registrado);
+          grupo.appendChild(btCp);
         }
 
-        div.appendChild(btnGroup);
+        div.appendChild(grupo);
 
         if (com.erros.length) {
-          const errosEl = document.createElement('div');
-          errosEl.className = 'erros';
-          errosEl.textContent = `⚠️ ${com.erros.join(', ')}`;
-          div.appendChild(errosEl);
+          const erdiv = document.createElement('div');
+          erdiv.className = 'erros';
+          erdiv.textContent = '⚠️ ' + com.erros.join(', ');
+          div.appendChild(erdiv);
         }
 
         container.appendChild(div);
       });
 
       if (erros.length) {
-        resumo.innerHTML = `<div class="resumo-erros">
-          <strong>${erros.length} comunicado(s) com erros:</strong><br>
-          ${erros.map(e => `📦 COMUNICADO ${e.id}: ${e.erros.join(', ')}`).join('<br>')}
-        </div>`;
+        document.getElementById('resumoErros').innerHTML = `
+          <div class="resumo-erros">
+            <strong>${erros.length} erro(s):</strong><br>
+            ${erros.map(e=>`#${e.id}: ${e.erros.join(', ')}`).join('<br>')}
+          </div>`;
       }
 
-      document.getElementById('exportarPDF').addEventListener('click', async () => {
-        const blocos = Array.from(document.querySelectorAll('.comunicado'));
-        const comunicados = blocos.map(div => {
-          const parte1 = div.querySelector('.editable')?.textContent || '';
-          const parte2 = div.querySelector('.parte2')?.textContent || '';
-          return { texto: `${parte1}\n${parte2}` };
+      document.getElementById('exportarPDF').onclick = async () => {
+        const cards = [...container.children].filter(d=>d.style.display!=='none');
+        const payload = cards.map(div=>{
+          const t1 = div.querySelector('.content-editable').textContent;
+          const t2 = div.querySelector('.parte2').textContent;
+          return { texto: `${t1}\n${t2}` };
         });
-
-        const response = await fetch('/gerar-etiquetas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ comunicados })
+        const r = await fetch('/gerar-etiquetas',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ comunicados: payload })
         });
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'etiquetas.pdf';
-          a.click();
-        } else {
-          alert('Erro ao gerar etiquetas.');
-        }
-      });
-
-
+        if (!r.ok) return alert('Erro ao gerar etiquetas.');
+        const blob = await r.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'etiquetas.pdf';
+        a.click();
+      };
     });
+
+    // —————————————— funções ausentes ——————————————
+
+    function copiarNome(event, nome) {
+      const btn = event.target;
+      if (!nome) {
+        btn.textContent = '❌ Nome não encontrado';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = '📋 Nome';
+          btn.disabled = false;
+        }, 2000);
+        return;
+      }
+      navigator.clipboard.writeText(nome).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = '✅ Copiado!';
+        btn.disabled = true;
+        setTimeout(() => {
+          btn.textContent = orig;
+          btn.disabled = false;
+        }, 2000);
+      });
+    }
+
+    function adicionarCartorio(btn) {
+      const input = btn.parentElement.querySelector('.input-cartorio');
+      const valor = input.value.trim();
+      if (!valor) return alert('Preencha o cartório.');
+      const card = btn.closest('.comunicado');
+      const p2 = card.querySelector('.parte2');
+      if (!/Cartório de origem:/.test(p2.textContent)) {
+        p2.textContent += `\nCartório de origem: ${valor}`;
+      } else {
+        p2.textContent = p2.textContent.replace(
+          /Cartório de origem:[^\n]*/,
+          `Cartório de origem: ${valor}`
+        );
+      }
+      const err = card.querySelector('.erros');
+      if (err && err.textContent.includes('Cartório de origem ausente')) err.remove();
+      btn.textContent = '✏️ Editar cartório';
+      btn.onclick = () => editarCartorio(btn, valor);
+    }
+
+    function editarCartorio(btn, valorAntigo) {
+      const cont = btn.parentElement;
+      const input = document.createElement('input');
+      input.type = 'text'; input.value = valorAntigo; input.className = 'input-cartorio';
+      const salvar = document.createElement('button');
+      salvar.textContent = '✅ Salvar';
+      salvar.onclick = () => salvarCartorio(salvar, input.value, valorAntigo);
+      cont.insertBefore(input, btn);
+      cont.insertBefore(salvar, btn);
+      btn.remove();
+    }
+
+    function salvarCartorio(btn, novo, antigo) {
+      const card = btn.closest('.comunicado');
+      const p2 = card.querySelector('.parte2');
+      p2.textContent = p2.textContent.replace(
+        `Cartório de origem: ${antigo}`,
+        `Cartório de origem: ${novo}`
+      );
+      const cont = btn.parentElement;
+      cont.querySelectorAll('.input-cartorio').forEach(el => el.remove());
+      btn.remove();
+      const edt = document.createElement('button');
+      edt.textContent = '✏️ Editar cartório';
+      edt.onclick = () => editarCartorio(edt, novo);
+      cont.appendChild(edt);
+    }
   </script>
 </body>
 </html>

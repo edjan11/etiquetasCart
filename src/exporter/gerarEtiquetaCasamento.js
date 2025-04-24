@@ -44,7 +44,7 @@ function gerarEtiqueta(comunicado) {
   ].filter(Boolean).join(', e ');
 
   const parte1 = [
-    `Foi comunicado pelo Cartório de ${limparTextoBruto(cartorio_emitente || '[---]')}, código ${limparTextoBruto(codigo || '[---]')}, ${limparTextoBruto(assento_completo || '[---]')}.`,
+    `Foi comunicado pelo Cartório de ${limparTextoBruto(cartorio_emitente || '[---]')}, código ${limparTextoBruto(codigo || '[---]')}, ${limparTextoBruto(assento_completo || '[---]')}`,
     parteNome
   ].filter(Boolean).join(' ');
 
