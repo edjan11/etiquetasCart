@@ -38,8 +38,10 @@ function extrairCampos(bloco) {
     trechoOrigem.match(/nascimento registrado.*?livro\s+([AB])\s*,?\s*folha/i) ||
     trechoOrigem.match(/registro.*?livro\s+([AB])\s*(?:n[uú]mero\s+)?[:º-]?\s*([\w\-]+)/i);
 
-  const folhaOrigemMatch = trechoOrigem.match(/folha[s]?\s+(\d{1,4})/i);
-
+  const folhaOrigemMatch =
+    trechoOrigem.match(/registro\s+(?:anterior|lavrado)?[^\.]{0,100}?folha[s]?\s+(\d{1,4})/i) ||
+    trechoOrigem.match(/livro\s+[AB]?[º]?\s*\w*,?\s*folha[s]?\s+(\d{1,4})/i);
+  
   const termoOrigemMatch =
     trechoOrigem.match(/(?:registro|nascimento|casamento)[^\.]{0,100}?termo\s+(\d{3,6})/i) ||
     trechoOrigem.match(/sob\s+n[uú]mero\s+(\d{3,6})/i) ||
