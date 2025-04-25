@@ -2,60 +2,198 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Comunicados</title>
   <style>
-    :root { --colors: #4fc3f7,#81c784,#ffb74d,#ba68c8,#ff8a65; }
-    body { font-family:sans-serif; padding:20px; background:#f0f2f5; }
-    h1 { margin-bottom:10px; }
+    /* — cores base — */
+    :root {
+      --colors: #4fc3f7,#81c784,#ffb74d,#ba68c8,#ff8a65;
+      --bg: #f0f2f5;
+      --card: #ffffff;
+      --text: #333;
+      --border: rgba(0,0,0,0.1);
+      --accent: #888;
+      --primary: #1976d2;
+      --primary-hover: #1565c0;
+    }
+    .dark {
+      --bg: #1e1e1e;
+      --card: #2a2a2a;
+      --text: #ddd;
+      --border: rgba(255,255,255,0.1);
+      --accent: #aaa;
+      --primary: #0288d1;
+      --primary-hover: #0277bd;
+    }
+
+    /* — reset & layout — */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      transition: background .3s, color .3s;
+    }
+    h1 { margin-bottom: 10px; }
+
+    /* — toggle tema — */
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 100;
+    }
+    .theme-toggle button {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--accent);
+      transition: background .2s, border-color .2s, color .2s;
+    }
+    .theme-toggle button:hover {
+      background: var(--primary);
+      border-color: var(--primary-hover);
+      color: #fff;
+    }
+
+    /* — barras e formulários — */
     #top-bar, #ferramentas, .btn-group {
-      display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:15px;
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;
     }
     #sessionContainer, #formUpload, #ferramentas, #controls-load {
-      background:#fff; padding:12px; border-radius:6px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+      background: var(--card);
+      padding: 12px;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px var(--border);
+      transition: background .3s, box-shadow .3s;
     }
     select, input[type="file"], input[type="text"], button {
-      padding:6px 10px; font-size:14px; border-radius:4px; border:1px solid #ccc;
+      padding: 6px 10px;
+      font-size: 14px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      transition: background .3s, border-color .3s, color .3s;
     }
-    button { background:#1976d2; color:#fff; cursor:pointer; }
-    button:hover { background:#1565c0; }
-    #controls-load button { background:#0288d1; }
-    #controls-load button:hover { background:#0277bd; }
+    button {
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    button:hover { background: var(--primary-hover); }
+    #controls-load button { background: var(--primary); }
+    #controls-load button:hover { background: var(--primary-hover); }
+
+    /* — resultados & erros — */
     #resultados {
-      display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:15px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px,1fr));
+      gap: 15px;
     }
     #resumoErros {
-      margin-top:20px; background:#fff3cd; padding:10px; border-radius:6px;
+      margin-top:20px;
+      background: #a58109;
+      padding:10px;
+      border-radius:6px;
+      box-shadow: 0 1px 3px var(--border);
     }
+
+    /* — cartão comunicado — */
     .comunicado {
-      position:relative; background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1);
-      padding:20px; border-left:6px solid; transition:transform .2s,opacity .3s;
+      position: relative;
+      background: var(--card);
+      border-radius: 8px;
+      box-shadow: 0 2px 6px var(--border);
+      padding: 20px;
+      border-left: 6px solid;
+      transition: transform .2s, opacity .3s, background .3s, box-shadow .3s;
     }
-    .comunicado:hover { transform:translateY(-3px); }
+    .comunicado:hover { transform: translateY(-3px); }
     .comunicado.completed {
-      opacity:.6; background:#e8f5e9; text-decoration:line-through;
+      opacity: .6;
+      background: #e8f5e9;
+      text-decoration: line-through;
     }
     .numero {
-      position:absolute; top:12px; right:16px; font-weight:bold; color:#555;
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-weight: bold;
+      color: var(--text);
     }
     .badge {
-      display:inline-block; padding:2px 6px; font-size:12px; border-radius:4px; color:#fff; margin-left:8px;
+      display: inline-block;
+      padding: 2px 6px;
+      font-size: 12px;
+      border-radius: 4px;
+      color: #fff;
+      margin-left: 8px;
     }
-    .badge.pendente { background:#f44336; }
-    .badge.concluido { background:#4caf50; }
+    .badge.pendente { background: #f44336; }
+    .badge.concluido { background: #4caf50; }
+
     .content-editable {
-      border:1px dashed #aaa; padding:6px; background:#fffde7; cursor:text;
+      border: 1px dashed var(--border);
+      padding: 6px;
+      background: #202022;
+      cursor: text;
+      transition: background .3s, border-color .3s;
     }
     .content-editable[contenteditable="true"] {
-      background:#fff3cd; outline:2px dashed #ffc107;
+      background: #0288d1;
+      outline: 2px dashed #ffc107;
     }
-    .parte2 { margin-top:12px; font-style:italic; white-space:pre-line; }
-    .btn-group { margin-top:12px; gap:6px; }
+    .parte2 {
+      margin-top: 12px;
+      font-style: italic;
+      white-space: pre-line;
+    }
+
+    /* — botões dentro de comunicado — */
+    .btn-group {
+      margin-top: 12px;
+      gap: 6px;
+    }
+    .remove-btn,
+    .btn-group button {
+      padding: 6px 10px;
+      border-radius: 4px;
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      cursor: pointer;
+      transition: background .2s;
+    }
+    .remove-btn:hover,
+    .btn-group button:hover {
+      background: var(--primary-hover);
+    }
     .input-cartorio {
-      padding:6px; font-size:13px; flex:1; min-width:120px;
+      padding: 6px;
+      font-size: 13px;
+      flex: 1;
+      min-width: 120px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
     }
   </style>
 </head>
 <body>
+
+  <!-- toggle tema -->
+  <div class="theme-toggle">
+    <button id="themeToggle" title="Alternar tema">☾</button>
+  </div>
 
   <h1>Processador de Comunicados</h1>
 
@@ -77,7 +215,7 @@
     <select id="sessionSelect">
       <option value="">Nova Sessão</option>
     </select>
-    <button id="btnCarregarSessao">🔄 Carregar Sessão Selecionada</button>
+    <button id="btnCarregarSessao">🔄 Carregar Sessão</button>
   </div>
 
   <div id="ferramentas">
@@ -89,9 +227,23 @@
   <div id="resumoErros"></div>
 
   <script>
-    const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors').split(',').map(c=>c.trim());
+     const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors')
+      .split(',').map(c=>c.trim());
     const TTL = 10*24*60*60*1000;
     let currentSessionId = null;
+    let files = [];
+
+    // tema persistente
+    const themeToggle = document.getElementById('themeToggle');
+    if (localStorage.getItem('theme') === 'dark') {
+      document.body.classList.add('dark');
+      themeToggle.textContent = '☀';
+    }
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.body.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      themeToggle.textContent = isDark ? '☀' : '☾';
+    });
 
     const form = document.getElementById('formUpload');
     const fileInput = document.getElementById('fileInput');
