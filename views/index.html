@@ -227,11 +227,10 @@
   <div id="resumoErros"></div>
 
   <script>
-     const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors')
+    const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors')
       .split(',').map(c=>c.trim());
     const TTL = 10*24*60*60*1000;
     let currentSessionId = null;
-    let files = [];
 
     // tema persistente
     const themeToggle = document.getElementById('themeToggle');
@@ -254,7 +253,7 @@
     const filtroBtn = document.getElementById('filtroPendentes');
     const container = document.getElementById('resultados');
     const resumoEl = document.getElementById('resumoErros');
-    let escrevente='', pendentesOnly=false;
+    let escrevente = '', pendentesOnly = false;
 
     function pruneSessions() {
       const now = Date.now();
@@ -294,82 +293,121 @@
     function renderComunicados(comunicados, erros, completosSet) {
       container.innerHTML = '';
       resumoEl.innerHTML = '';
-      comunicados.forEach((com, i)=>{
+      comunicados.forEach((com, i) => {
         const div = document.createElement('div');
         div.className = 'comunicado';
         div.dataset.id = com.id;
-        if(completosSet.has(com.id)) div.classList.add('completed');
+        if (completosSet.has(com.id)) div.classList.add('completed');
         div.style.borderLeftColor = cores[i % cores.length];
 
+        // Número e badge
         const num = document.createElement('span');
         num.className = 'numero';
         num.textContent = `#${i+1}`;
         div.appendChild(num);
-
         const badge = document.createElement('span');
-        badge.className = 'badge ' + (completosSet.has(com.id)?'concluido':'pendente');
-        badge.textContent = completosSet.has(com.id)?'Concluído':'Pendente';
+        badge.className = 'badge ' + (completosSet.has(com.id) ? 'concluido' : 'pendente');
+        badge.textContent = completosSet.has(com.id) ? 'Concluído' : 'Pendente';
         num.after(badge);
 
+        // Parte1
         const p1 = document.createElement('div');
         p1.className = 'content-editable';
         p1.contentEditable = 'false';
         p1.innerHTML = `${com.parte1}${escrevente?` Dou fé, ${escrevente}.`:''}`;
-        div.appendChild(p1);
-
-        p1.addEventListener('blur', () => {
+        p1.addEventListener('blur', ()=>{
           if (p1.contentEditable === 'true') {
             p1.contentEditable = 'false';
             persistSession();
           }
         });
+        div.appendChild(p1);
 
-        
+        // Parte2
         const p2 = document.createElement('div');
         p2.className = 'parte2';
         p2.textContent = com.parte2;
         div.appendChild(p2);
 
+        // Botões
         const grp = document.createElement('div');
         grp.className = 'btn-group';
 
+        // Editar texto
         const btE = document.createElement('button');
         btE.textContent = '📝 Editar';
         btE.onclick = ()=>{
           const ed = p1.contentEditable==='true';
-          p1.contentEditable = ed?'false':'true';
-          if(!ed) p1.focus();
-          else persistSession();              // SALVA APÓS EDITAR
+          p1.contentEditable = ed ? 'false' : 'true';
+          if (!ed) p1.focus(); else persistSession();
         };
         grp.appendChild(btE);
 
+        // Concluir/Desmarcar
         const btC = document.createElement('button');
-        btC.textContent = completosSet.has(com.id)?'🔄 Desmarcar':'✅ Concluir';
+        btC.textContent = completosSet.has(com.id) ? '🔄 Desmarcar' : '✅ Concluir';
         btC.onclick = ()=> toggleConcluido(div, com.id, btC);
         grp.appendChild(btC);
 
-        if(com.erros.includes('Cartório de origem ausente')){
+        // === NOVO BLOCO PARA CARTÓRIO DE ORIGEM ===
+        if (com.erros.includes('Cartório de origem ausente')) {
           const inp = document.createElement('input');
+          inp.type = 'text';
           inp.className = 'input-cartorio';
           inp.placeholder = 'Ex: 13º Ofício';
 
           const btA = document.createElement('button');
+          btA.type = 'button';
           btA.textContent = '➕ Cartório';
           btA.onclick = ()=>{
             adicionarCartorio(btA);
-            persistSession();              // SALVA APÓS ADICIONAR
+            persistSession();
           };
 
           const btCp = document.createElement('button');
           btCp.textContent = '📋 Nome';
           btCp.onclick = e=> copiarNome(e, com.nome_registrado);
 
+          inp.addEventListener('keydown', function(e) {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            const v = inp.value.trim();
+            if (!v) return alert('Preencha o cartório.');
+
+            // adiciona no comunicado
+            const card = inp.closest('.comunicado');
+            const p2c = card.querySelector('.parte2');
+            if (!/Cartório de origem:/.test(p2c.textContent))
+              p2c.textContent += `\nCartório de origem: ${v}`;
+            else
+              p2c.textContent = p2c.textContent.replace(
+                /Cartório de origem:[^\n]*/,
+                `Cartório de origem: ${v}`
+              );
+            persistSession();
+
+            // prepara botão editar
+            card.querySelector('.erros')?.remove();
+            btA.textContent = '✏️ Editar cartório';
+            btA.onclick = ()=>{
+              editarCartorio(btA, v);
+              persistSession();
+            };
+
+            // pula para o próximo input-cartorio
+            const todos = [...document.querySelectorAll('.input-cartorio')];
+            const idx = todos.indexOf(inp);
+            if (idx >= 0 && idx < todos.length - 1) {
+              todos[idx + 1].focus();
+            }
+          });
+
           grp.append(inp, btA, btCp);
         }
 
         div.appendChild(grp);
 
-        if(com.erros.length){
+        if (com.erros.length) {
           const erdiv = document.createElement('div');
           erdiv.className = 'erros';
           erdiv.textContent = '⚠️ ' + com.erros.join(', ');
@@ -379,7 +417,7 @@
         container.appendChild(div);
       });
 
-      if(erros.length){
+      if (erros.length) {
         resumoEl.innerHTML = `<div class="resumo-erros">
           <strong>${erros.length} erro(s):</strong><br>
           ${erros.map(e=>`#${e.id}: ${e.erros.join(', ')}`).join('<br>')}
@@ -394,69 +432,65 @@
       fileInput.disabled = true;
       fileInput.value = '';
       const raw = localStorage.getItem('session_'+id);
-      if(!raw) return;
+      if (!raw) return;
       const sess = JSON.parse(raw);
       renderComunicados(sess.comunicados, sess.erros, new Set(sess.completos));
       currentSessionId = id;
     }
 
     sessionSelect.addEventListener('change', e=>{
-      if(!e.target.value){
+      if (!e.target.value) {
         clearUI();
         fileInput.disabled = false;
       }
     });
-
     loadBtn.addEventListener('click', ()=>{
       const id = sessionSelect.value;
-      if(!id){
-        alert('Selecione uma sessão primeiro.');
-        return;
-      }
+      if (!id) return alert('Selecione uma sessão primeiro.');
       loadSession(id);
     });
-
     escreventeSelect.onchange = e=> escrevente = e.target.value;
     filtroBtn.onclick = ()=>{
       pendentesOnly = !pendentesOnly;
-      filtroBtn.textContent = pendentesOnly?'Mostrar todos':'Mostrar só pendentes';
+      filtroBtn.textContent = pendentesOnly ? 'Mostrar todos' : 'Mostrar só pendentes';
       filtrar();
     };
     busca.oninput = filtrar;
-    function filtrar(){
+
+    function filtrar() {
       const q = busca.value.toLowerCase();
       document.querySelectorAll('.comunicado').forEach(div=>{
         const txt = div.textContent.toLowerCase();
         const done = div.classList.contains('completed');
-        div.style.display = (txt.includes(q) && (!pendentesOnly || !done))?'':'none';
+        div.style.display = (txt.includes(q) && (!pendentesOnly || !done)) ? '' : 'none';
       });
     }
 
-    function carregarCompletos(){
+    function carregarCompletos() {
       return JSON.parse(localStorage.getItem('completos')||'[]');
     }
-    function salvarCompletos(list){
+    function salvarCompletos(list) {
       localStorage.setItem('completos', JSON.stringify(list));
     }
-    function toggleConcluido(div, id, btn){
+    function toggleConcluido(div, id, btn) {
       const lista = carregarCompletos();
       const idx = lista.indexOf(id);
       const done = idx > -1;
-      if(done) lista.splice(idx,1); else lista.push(id);
+      if (done) lista.splice(idx,1); else lista.push(id);
       salvarCompletos(lista);
       div.classList.toggle('completed', !done);
-      btn.textContent = done?'✅ Concluir':'🔄 Desmarcar';
+      btn.textContent = done ? '✅ Concluir' : '🔄 Desmarcar';
       filtrar();
-      if(currentSessionId){
+      if (currentSessionId) {
         const sess = JSON.parse(localStorage.getItem('session_'+currentSessionId));
         sess.completos = lista;
         localStorage.setItem('session_'+currentSessionId, JSON.stringify(sess));
       }
     }
 
-    function copiarNome(e, nome){
+    function copiarNome(e, nome) {
       const btn = e.target;
-      if(!nome){
+      if (!nome) {
         btn.textContent = '❌ Nome não encontrado';
         btn.disabled = true;
         return setTimeout(()=>{
@@ -473,25 +507,29 @@
       });
     }
 
-    function adicionarCartorio(btn){
+    function adicionarCartorio(btn) {
+      // existir sua lógica: pega inp, insere no p2, troca btn para editar etc.
       const inp = btn.parentElement.querySelector('.input-cartorio');
       const v = inp.value.trim();
-      if(!v) return alert('Preencha o cartório.');
+      if (!v) return alert('Preencha o cartório.');
       const card = btn.closest('.comunicado');
       const p2 = card.querySelector('.parte2');
-      if(!/Cartório de origem:/.test(p2.textContent))
+      if (!/Cartório de origem:/.test(p2.textContent))
         p2.textContent += `\nCartório de origem: ${v}`;
       else
-        p2.textContent = p2.textContent.replace(/Cartório de origem:[^\n]*/, `Cartório de origem: ${v}`);
+        p2.textContent = p2.textContent.replace(
+          /Cartório de origem:[^\n]*/,
+          `Cartório de origem: ${v}`
+        );
       card.querySelector('.erros')?.remove();
       btn.textContent = '✏️ Editar cartório';
       btn.onclick = ()=> {
         editarCartorio(btn, v);
-        persistSession();            // SALVA APÓS SALVAR CARTÓRIO
+        persistSession();
       };
     }
 
-    function editarCartorio(btn, old){
+    function editarCartorio(btn, old) {
       const cont = btn.parentElement;
       const inp = document.createElement('input');
       inp.type = 'text'; inp.value = old; inp.className = 'input-cartorio';
@@ -502,10 +540,13 @@
       btn.remove();
     }
 
-    function salvarCartorio(btn, nw, old){
+    function salvarCartorio(btn, nw, old) {
       const card = btn.closest('.comunicado');
       const p2 = card.querySelector('.parte2');
-      p2.textContent = p2.textContent.replace(`Cartório de origem: ${old}`, `Cartório de origem: ${nw}`);
+      p2.textContent = p2.textContent.replace(
+        `Cartório de origem: ${old}`,
+        `Cartório de origem: ${nw}`
+      );
       const cont = btn.parentElement;
       cont.querySelectorAll('.input-cartorio').forEach(x=>x.remove());
       btn.remove();
@@ -513,12 +554,12 @@
       ed.textContent = '✏️ Editar cartório';
       ed.onclick = ()=> {
         editarCartorio(ed, nw);
-        persistSession();          // SALVA APÓS SALVAR CARTÓRIO
+        persistSession();
       };
       cont.appendChild(ed);
     }
 
-    function gerarEtiquetas(){
+    function gerarEtiquetas() {
       const cards = [...container.children].filter(d=>d.style.display!=='none');
       const payload = cards.map(div=>({
         texto: `${div.querySelector('.content-editable').textContent}\n${div.querySelector('.parte2').textContent}`
@@ -539,75 +580,48 @@
 
     document.getElementById('exportarPDF').addEventListener('click', gerarEtiquetas);
 
-    form.addEventListener('submit', async e=>{ /* ... */ });
+    form.addEventListener('submit', async e=>{
+      e.preventDefault();
+      const sid = sessionSelect.value;
+      if (sid && !fileInput.files.length) {
+        loadSession(sid);
+        return;
+      }
+      const res = await fetch('/upload', { method:'POST', body:new FormData(form) });
+      if (!res.ok) return alert('Erro ao enviar PDF.');
+      const { comunicados, erros } = await res.json();
+      const completos = new Set(carregarCompletos());
+      renderComunicados(comunicados, erros, completos);
+      const label = `${fileInput.files[0].name} (${new Date().toLocaleDateString()})`;
+      const newId = Date.now().toString();
+      saveSession(newId, label, {
+        comunicados,
+        erros,
+        completos:Array.from(completos)
+      });
+      currentSessionId = newId;
+      sessionSelect.value = newId;
+      fileInput.disabled = true;
+    });
 
     function persistSession() {
       if (!currentSessionId) return;
       const key = 'session_' + currentSessionId;
       const sess = JSON.parse(localStorage.getItem(key));
-
-      sess.comunicados = sess.comunicados.map(orig => {
+      sess.comunicados = sess.comunicados.map(orig=>{
         const div = container.querySelector(`[data-id="${orig.id}"]`);
         if (!div) return orig;
-
         const newParte1 = div.querySelector('.content-editable').innerHTML;
         const newParte2 = div.querySelector('.parte2').textContent.trim();
-
-        // só remove “Cartório de origem ausente” se você já adicionou um cartório
-        const newErros = orig.erros.filter(err => {
-          if (err === 'Cartório de origem ausente') {
+        const newErros = orig.erros.filter(err=>{
+          if (err==='Cartório de origem ausente')
             return !newParte2.includes('Cartório de origem:');
-          }
           return true;
         });
-
-        return {
-          ...orig,
-          parte1: newParte1,
-          parte2: newParte2,
-          erros: newErros
-        };
+        return { ...orig, parte1:newParte1, parte2:newParte2, erros:newErros };
       });
-
       localStorage.setItem(key, JSON.stringify(sess));
     }
-
-
-    form.addEventListener('submit', async e => {
-    e.preventDefault();
-
-    // se estiver carregando sessão, não faz upload
-    const sid = sessionSelect.value;
-    if (sid && !fileInput.files.length) {
-      loadSession(sid);
-      return;
-    }
-
-    // faz o upload do PDF
-    const res = await fetch('/upload', {
-      method: 'POST',
-      body: new FormData(form)
-    });
-    if (!res.ok) {
-      return alert('Erro ao enviar PDF.');
-    }
-    const { comunicados, erros } = await res.json();
-
-    // renderiza e salva sessão
-    const completos = new Set(carregarCompletos());
-    renderComunicados(comunicados, erros, completos);
-
-    const label = `${fileInput.files[0].name} (${new Date().toLocaleDateString()})`;
-    const newId = Date.now().toString();
-    saveSession(newId, label, {
-      comunicados,
-      erros,
-      completos: Array.from(completos)
-    });
-    currentSessionId = newId;
-    sessionSelect.value = newId;
-    fileInput.disabled = true;
-  });
 
     populateSessionSelect();
   </script>
