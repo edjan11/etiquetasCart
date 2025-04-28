@@ -1,629 +1,71 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Comunicados</title>
-  <style>
-    /* — cores base — */
-    :root {
-      --colors: #4fc3f7,#81c784,#ffb74d,#ba68c8,#ff8a65;
-      --bg: #f0f2f5;
-      --card: #ffffff;
-      --text: #333;
-      --border: rgba(0,0,0,0.1);
-      --accent: #888;
-      --primary: #1976d2;
-      --primary-hover: #1565c0;
-    }
-    .dark {
-      --bg: #1e1e1e;
-      --card: #2a2a2a;
-      --text: #ddd;
-      --border: rgba(255,255,255,0.1);
-      --accent: #aaa;
-      --primary: #0288d1;
-      --primary-hover: #0277bd;
-    }
-
-    /* — reset & layout — */
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      padding: 20px;
-      transition: background .3s, color .3s;
-    }
-    h1 { margin-bottom: 10px; }
-
-    /* — toggle tema — */
-    .theme-toggle {
-      position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 100;
-    }
-    .theme-toggle button {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: var(--accent);
-      transition: background .2s, border-color .2s, color .2s;
-    }
-    .theme-toggle button:hover {
-      background: var(--primary);
-      border-color: var(--primary-hover);
-      color: #fff;
-    }
-
-    /* — barras e formulários — */
-    #top-bar, #ferramentas, .btn-group {
-      display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 15px;
-    }
-    #sessionContainer, #formUpload, #ferramentas, #controls-load {
-      background: var(--card);
-      padding: 12px;
-      border-radius: 6px;
-      box-shadow: 0 1px 3px var(--border);
-      transition: background .3s, box-shadow .3s;
-    }
-    select, input[type="file"], input[type="text"], button {
-      padding: 6px 10px;
-      font-size: 14px;
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-      transition: background .3s, border-color .3s, color .3s;
-    }
-    button {
-      background: var(--primary);
-      color: #fff;
-      cursor: pointer;
-      transition: background .2s;
-    }
-    button:hover { background: var(--primary-hover); }
-    #controls-load button { background: var(--primary); }
-    #controls-load button:hover { background: var(--primary-hover); }
-
-    /* — resultados & erros — */
-    #resultados {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px,1fr));
-      gap: 15px;
-    }
-    #resumoErros {
-      margin-top:20px;
-      background: #a58109;
-      padding:10px;
-      border-radius:6px;
-      box-shadow: 0 1px 3px var(--border);
-    }
-
-    /* — cartão comunicado — */
-    .comunicado {
-      position: relative;
-      background: var(--card);
-      border-radius: 8px;
-      box-shadow: 0 2px 6px var(--border);
-      padding: 20px;
-      border-left: 6px solid;
-      transition: transform .2s, opacity .3s, background .3s, box-shadow .3s;
-    }
-    .comunicado:hover { transform: translateY(-3px); }
-    .comunicado.completed {
-      opacity: .6;
-      background: #e8f5e9;
-      text-decoration: line-through;
-    }
-    .numero {
-      position: absolute;
-      top: 12px;
-      right: 16px;
-      font-weight: bold;
-      color: var(--text);
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 6px;
-      font-size: 12px;
-      border-radius: 4px;
-      color: #fff;
-      margin-left: 8px;
-    }
-    .badge.pendente { background: #f44336; }
-    .badge.concluido { background: #4caf50; }
-
-    .content-editable {
-      border: 1px dashed var(--border);
-      padding: 6px;
-      background: #202022;
-      cursor: text;
-      transition: background .3s, border-color .3s;
-    }
-    .content-editable[contenteditable="true"] {
-      background: #0288d1;
-      outline: 2px dashed #ffc107;
-    }
-    .parte2 {
-      margin-top: 12px;
-      font-style: italic;
-      white-space: pre-line;
-    }
-
-    /* — botões dentro de comunicado — */
-    .btn-group {
-      margin-top: 12px;
-      gap: 6px;
-    }
-    .remove-btn,
-    .btn-group button {
-      padding: 6px 10px;
-      border-radius: 4px;
-      border: none;
-      background: var(--primary);
-      color: #fff;
-      cursor: pointer;
-      transition: background .2s;
-    }
-    .remove-btn:hover,
-    .btn-group button:hover {
-      background: var(--primary-hover);
-    }
-    .input-cartorio {
-      padding: 6px;
-      font-size: 13px;
-      flex: 1;
-      min-width: 120px;
-      border: 1px solid var(--border);
-      background: var(--card);
-      color: var(--text);
-    }
-  </style>
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
-  <!-- toggle tema -->
-  <div class="theme-toggle">
-    <button id="themeToggle" title="Alternar tema">☾</button>
-  </div>
+<!-- Botão de alternar tema -->
+<div class="theme-toggle">
+  <button id="themeToggle" title="Alternar tema">☾</button>
+</div>
 
-  <h1>Processador de Comunicados</h1>
+<h1>Processador de Comunicados</h1>
 
-  <div id="top-bar">
-    <form id="formUpload">
-      <input id="fileInput" type="file" name="pdf" accept="application/pdf" required />
-      <select id="escreventeSelect">
-        <option value="">Selecionar escrevente</option>
-        <option>Edjan Santos Melo</option>
-        <option>Gabriela Maria Gama de Almeida</option>
-      </select>
-      <button type="submit">Enviar PDF</button>
-      <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
-    </form>
-  </div>
-
-  <div id="controls-load">
-    <label for="sessionSelect"><strong>Continuar PDF:</strong></label>
-    <select id="sessionSelect">
-      <option value="">Nova Sessão</option>
+<!-- Barra de envio -->
+<div id="top-bar">
+  <form id="formUpload">
+    <input id="fileInput" type="file" name="pdf" accept="application/pdf" required />
+    <select id="escreventeSelect">
+      <option value="">Selecionar escrevente</option>
+      <option>Edjan Santos Melo</option>
+      <option>Gabriela Maria Gama de Almeida</option>
     </select>
-    <button id="btnCarregarSessao">🔄 Carregar Sessão</button>
-  </div>
+    <button type="submit">Enviar PDF</button>
+    <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
+  </form>
+</div>
 
-  <div id="ferramentas">
-    <input id="buscaComunicados" placeholder="🔍 Buscar..." />
-    <button id="filtroPendentes">Mostrar só pendentes</button>
-  </div>
+<!-- Controles de sessão -->
+<div id="controls-load">
+  <label for="sessionSelect"><strong>Continuar PDF:</strong></label>
+  <select id="sessionSelect">
+    <option value="">Nova Sessão</option>
+  </select>
+  <button id="btnCarregarSessao">🔄 Carregar Sessão</button>
+</div>
 
-  <div id="resultados"></div>
-  <div id="resumoErros"></div>
+<!-- Ferramentas -->
+<div id="ferramentas">
+  <input id="buscaComunicados" placeholder="🔍 Buscar...">
+  <button id="filtroPendentes">Mostrar só pendentes</button>
+</div>
 
-  <script>
-    const cores = getComputedStyle(document.documentElement).getPropertyValue('--colors')
-      .split(',').map(c=>c.trim());
-    const TTL = 10*24*60*60*1000;
-    let currentSessionId = null;
+<!-- Resultados e Erros -->
+<div id="resultados"></div>
+<div id="resumoErros"></div>
 
-    // tema persistente
-    const themeToggle = document.getElementById('themeToggle');
-    if (localStorage.getItem('theme') === 'dark') {
-      document.body.classList.add('dark');
-      themeToggle.textContent = '☀';
-    }
-    themeToggle.addEventListener('click', () => {
-      const isDark = document.body.classList.toggle('dark');
-      localStorage.setItem('theme', isDark ? 'dark' : 'light');
-      themeToggle.textContent = isDark ? '☀' : '☾';
-    });
+<!-- Botão padrão para abrir/fechar a lista -->
+<button id="toggleListaNomes" style="position: fixed; top: 80px; right: 20px; z-index: 9999; padding: 8px 14px; font-size: 14px; background: var(--primary); border: 1px solid var(--primary-hover); border-radius: 6px; color: #fff; cursor: pointer;">
+  👥
+</button>
 
-    const form = document.getElementById('formUpload');
-    const fileInput = document.getElementById('fileInput');
-    const sessionSelect = document.getElementById('sessionSelect');
-    const loadBtn = document.getElementById('btnCarregarSessao');
-    const escreventeSelect = document.getElementById('escreventeSelect');
-    const busca = document.getElementById('buscaComunicados');
-    const filtroBtn = document.getElementById('filtroPendentes');
-    const container = document.getElementById('resultados');
-    const resumoEl = document.getElementById('resumoErros');
-    let escrevente = '', pendentesOnly = false;
+<!-- Lista de cônjuges (começa escondida) -->
+<div id="listaConjuges" style="position: fixed; top: 130px; right: 20px; width: 300px; background: var(--card); padding: 10px; border-radius: 6px; box-shadow: 0 2px 6px var(--border); overflow-y: auto; max-height: 90vh; display: none;">
+  <div id="listaNomes"></div>
+</div>
 
-    function pruneSessions() {
-      const now = Date.now();
-      const all = JSON.parse(localStorage.getItem('sessions')||'[]');
-      const valid = all.filter(s=> now - s.timestamp < TTL);
-      all.filter(s=> now - s.timestamp >= TTL)
-         .forEach(s=> localStorage.removeItem('session_'+s.id));
-      localStorage.setItem('sessions', JSON.stringify(valid));
-      return valid;
-    }
 
-    function populateSessionSelect() {
-      sessionSelect.innerHTML = '<option value="">Nova Sessão</option>';
-      pruneSessions().forEach(s=>{
-        const o = document.createElement('option');
-        o.value = s.id;
-        o.textContent = s.label;
-        sessionSelect.appendChild(o);
-      });
-    }
 
-    function saveSession(id, label, data) {
-      const now = Date.now();
-      const list = pruneSessions();
-      list.push({id, label, timestamp: now});
-      localStorage.setItem('sessions', JSON.stringify(list));
-      localStorage.setItem('session_'+id, JSON.stringify(data));
-      populateSessionSelect();
-    }
+<!-- Carregar o script principal -->
+<script src="./app.js" defer></script>
 
-    function clearUI() {
-      container.innerHTML = '';
-      resumoEl.innerHTML = '';
-      currentSessionId = null;
-    }
+<!-- Carregar o flutuável-->
+<script src="draggable.js"></script>
 
-    function renderComunicados(comunicados, erros, completosSet) {
-      container.innerHTML = '';
-      resumoEl.innerHTML = '';
-      comunicados.forEach((com, i) => {
-        const div = document.createElement('div');
-        div.className = 'comunicado';
-        div.dataset.id = com.id;
-        if (completosSet.has(com.id)) div.classList.add('completed');
-        div.style.borderLeftColor = cores[i % cores.length];
 
-        // Número e badge
-        const num = document.createElement('span');
-        num.className = 'numero';
-        num.textContent = `#${i+1}`;
-        div.appendChild(num);
-        const badge = document.createElement('span');
-        badge.className = 'badge ' + (completosSet.has(com.id) ? 'concluido' : 'pendente');
-        badge.textContent = completosSet.has(com.id) ? 'Concluído' : 'Pendente';
-        num.after(badge);
-
-        // Parte1
-        const p1 = document.createElement('div');
-        p1.className = 'content-editable';
-        p1.contentEditable = 'false';
-        p1.innerHTML = `${com.parte1}${escrevente?` Dou fé, ${escrevente}.`:''}`;
-        p1.addEventListener('blur', ()=>{
-          if (p1.contentEditable === 'true') {
-            p1.contentEditable = 'false';
-            persistSession();
-          }
-        });
-        div.appendChild(p1);
-
-        // Parte2
-        const p2 = document.createElement('div');
-        p2.className = 'parte2';
-        p2.textContent = com.parte2;
-        div.appendChild(p2);
-
-        // Botões
-        const grp = document.createElement('div');
-        grp.className = 'btn-group';
-
-        // Editar texto
-        const btE = document.createElement('button');
-        btE.textContent = '📝 Editar';
-        btE.onclick = ()=>{
-          const ed = p1.contentEditable==='true';
-          p1.contentEditable = ed ? 'false' : 'true';
-          if (!ed) p1.focus(); else persistSession();
-        };
-        grp.appendChild(btE);
-
-        // Concluir/Desmarcar
-        const btC = document.createElement('button');
-        btC.textContent = completosSet.has(com.id) ? '🔄 Desmarcar' : '✅ Concluir';
-        btC.onclick = ()=> toggleConcluido(div, com.id, btC);
-        grp.appendChild(btC);
-
-        // === NOVO BLOCO PARA CARTÓRIO DE ORIGEM ===
-        if (com.erros.includes('Cartório de origem ausente')) {
-          const inp = document.createElement('input');
-          inp.type = 'text';
-          inp.className = 'input-cartorio';
-          inp.placeholder = 'Ex: 13º Ofício';
-
-          const btA = document.createElement('button');
-          btA.type = 'button';
-          btA.textContent = '➕ Cartório';
-          btA.onclick = ()=>{
-            adicionarCartorio(btA);
-            persistSession();
-          };
-
-          const btCp = document.createElement('button');
-          btCp.textContent = '📋 Nome';
-          btCp.onclick = e=> copiarNome(e, com.nome_registrado);
-
-          inp.addEventListener('keydown', function(e) {
-            if (e.key !== 'Enter') return;
-            e.preventDefault();
-            const v = inp.value.trim();
-            if (!v) return alert('Preencha o cartório.');
-
-            // adiciona no comunicado
-            const card = inp.closest('.comunicado');
-            const p2c = card.querySelector('.parte2');
-            if (!/Cartório de origem:/.test(p2c.textContent))
-              p2c.textContent += `\nCartório de origem: ${v}`;
-            else
-              p2c.textContent = p2c.textContent.replace(
-                /Cartório de origem:[^\n]*/,
-                `Cartório de origem: ${v}`
-              );
-            persistSession();
-
-            // prepara botão editar
-            card.querySelector('.erros')?.remove();
-            btA.textContent = '✏️ Editar cartório';
-            btA.onclick = ()=>{
-              editarCartorio(btA, v);
-              persistSession();
-            };
-
-            // pula para o próximo input-cartorio
-            const todos = [...document.querySelectorAll('.input-cartorio')];
-            const idx = todos.indexOf(inp);
-            if (idx >= 0 && idx < todos.length - 1) {
-              todos[idx + 1].focus();
-            }
-          });
-
-          grp.append(inp, btA, btCp);
-        }
-
-        div.appendChild(grp);
-
-        if (com.erros.length) {
-          const erdiv = document.createElement('div');
-          erdiv.className = 'erros';
-          erdiv.textContent = '⚠️ ' + com.erros.join(', ');
-          div.appendChild(erdiv);
-        }
-
-        container.appendChild(div);
-      });
-
-      if (erros.length) {
-        resumoEl.innerHTML = `<div class="resumo-erros">
-          <strong>${erros.length} erro(s):</strong><br>
-          ${erros.map(e=>`#${e.id}: ${e.erros.join(', ')}`).join('<br>')}
-        </div>`;
-      }
-
-      filtrar();
-    }
-
-    function loadSession(id) {
-      clearUI();
-      fileInput.disabled = true;
-      fileInput.value = '';
-      const raw = localStorage.getItem('session_'+id);
-      if (!raw) return;
-      const sess = JSON.parse(raw);
-      renderComunicados(sess.comunicados, sess.erros, new Set(sess.completos));
-      currentSessionId = id;
-    }
-
-    sessionSelect.addEventListener('change', e=>{
-      if (!e.target.value) {
-        clearUI();
-        fileInput.disabled = false;
-      }
-    });
-    loadBtn.addEventListener('click', ()=>{
-      const id = sessionSelect.value;
-      if (!id) return alert('Selecione uma sessão primeiro.');
-      loadSession(id);
-    });
-    escreventeSelect.onchange = e=> escrevente = e.target.value;
-    filtroBtn.onclick = ()=>{
-      pendentesOnly = !pendentesOnly;
-      filtroBtn.textContent = pendentesOnly ? 'Mostrar todos' : 'Mostrar só pendentes';
-      filtrar();
-    };
-    busca.oninput = filtrar;
-
-    function filtrar() {
-      const q = busca.value.toLowerCase();
-      document.querySelectorAll('.comunicado').forEach(div=>{
-        const txt = div.textContent.toLowerCase();
-        const done = div.classList.contains('completed');
-        div.style.display = (txt.includes(q) && (!pendentesOnly || !done)) ? '' : 'none';
-      });
-    }
-
-    function carregarCompletos() {
-      return JSON.parse(localStorage.getItem('completos')||'[]');
-    }
-    function salvarCompletos(list) {
-      localStorage.setItem('completos', JSON.stringify(list));
-    }
-    function toggleConcluido(div, id, btn) {
-      const lista = carregarCompletos();
-      const idx = lista.indexOf(id);
-      const done = idx > -1;
-      if (done) lista.splice(idx,1); else lista.push(id);
-      salvarCompletos(lista);
-      div.classList.toggle('completed', !done);
-      btn.textContent = done ? '✅ Concluir' : '🔄 Desmarcar';
-      filtrar();
-      if (currentSessionId) {
-        const sess = JSON.parse(localStorage.getItem('session_'+currentSessionId));
-        sess.completos = lista;
-        localStorage.setItem('session_'+currentSessionId, JSON.stringify(sess));
-      }
-    }
-
-    function copiarNome(e, nome) {
-      const btn = e.target;
-      if (!nome) {
-        btn.textContent = '❌ Nome não encontrado';
-        btn.disabled = true;
-        return setTimeout(()=>{
-          btn.textContent = '📋 Nome'; btn.disabled = false;
-        },2000);
-      }
-      navigator.clipboard.writeText(nome).then(()=>{
-        const orig = btn.textContent;
-        btn.textContent = '✅ Copiado!';
-        btn.disabled = true;
-        setTimeout(()=>{
-          btn.textContent = orig; btn.disabled = false;
-        },2000);
-      });
-    }
-
-    function adicionarCartorio(btn) {
-      // existir sua lógica: pega inp, insere no p2, troca btn para editar etc.
-      const inp = btn.parentElement.querySelector('.input-cartorio');
-      const v = inp.value.trim();
-      if (!v) return alert('Preencha o cartório.');
-      const card = btn.closest('.comunicado');
-      const p2 = card.querySelector('.parte2');
-      if (!/Cartório de origem:/.test(p2.textContent))
-        p2.textContent += `\nCartório de origem: ${v}`;
-      else
-        p2.textContent = p2.textContent.replace(
-          /Cartório de origem:[^\n]*/,
-          `Cartório de origem: ${v}`
-        );
-      card.querySelector('.erros')?.remove();
-      btn.textContent = '✏️ Editar cartório';
-      btn.onclick = ()=> {
-        editarCartorio(btn, v);
-        persistSession();
-      };
-    }
-
-    function editarCartorio(btn, old) {
-      const cont = btn.parentElement;
-      const inp = document.createElement('input');
-      inp.type = 'text'; inp.value = old; inp.className = 'input-cartorio';
-      const sv = document.createElement('button'); sv.textContent = '✅ Salvar';
-      sv.onclick = ()=> salvarCartorio(sv, inp.value, old);
-      cont.insertBefore(inp, btn);
-      cont.insertBefore(sv, btn);
-      btn.remove();
-    }
-
-    function salvarCartorio(btn, nw, old) {
-      const card = btn.closest('.comunicado');
-      const p2 = card.querySelector('.parte2');
-      p2.textContent = p2.textContent.replace(
-        `Cartório de origem: ${old}`,
-        `Cartório de origem: ${nw}`
-      );
-      const cont = btn.parentElement;
-      cont.querySelectorAll('.input-cartorio').forEach(x=>x.remove());
-      btn.remove();
-      const ed = document.createElement('button');
-      ed.textContent = '✏️ Editar cartório';
-      ed.onclick = ()=> {
-        editarCartorio(ed, nw);
-        persistSession();
-      };
-      cont.appendChild(ed);
-    }
-
-    function gerarEtiquetas() {
-      const cards = [...container.children].filter(d=>d.style.display!=='none');
-      const payload = cards.map(div=>({
-        texto: `${div.querySelector('.content-editable').textContent}\n${div.querySelector('.parte2').textContent}`
-      }));
-      fetch('/gerar-etiquetas',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({comunicados:payload})
-      })
-      .then(r=>{ if(!r.ok) throw new Error(); return r.blob(); })
-      .then(blob=>{
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download='etiquetas.pdf'; a.click();
-      })
-      .catch(()=>alert('Erro ao gerar etiquetas.'));
-    }
-
-    document.getElementById('exportarPDF').addEventListener('click', gerarEtiquetas);
-
-    form.addEventListener('submit', async e=>{
-      e.preventDefault();
-      const sid = sessionSelect.value;
-      if (sid && !fileInput.files.length) {
-        loadSession(sid);
-        return;
-      }
-      const res = await fetch('/upload', { method:'POST', body:new FormData(form) });
-      if (!res.ok) return alert('Erro ao enviar PDF.');
-      const { comunicados, erros } = await res.json();
-      const completos = new Set(carregarCompletos());
-      renderComunicados(comunicados, erros, completos);
-      const label = `${fileInput.files[0].name} (${new Date().toLocaleDateString()})`;
-      const newId = Date.now().toString();
-      saveSession(newId, label, {
-        comunicados,
-        erros,
-        completos:Array.from(completos)
-      });
-      currentSessionId = newId;
-      sessionSelect.value = newId;
-      fileInput.disabled = true;
-    });
-
-    function persistSession() {
-      if (!currentSessionId) return;
-      const key = 'session_' + currentSessionId;
-      const sess = JSON.parse(localStorage.getItem(key));
-      sess.comunicados = sess.comunicados.map(orig=>{
-        const div = container.querySelector(`[data-id="${orig.id}"]`);
-        if (!div) return orig;
-        const newParte1 = div.querySelector('.content-editable').innerHTML;
-        const newParte2 = div.querySelector('.parte2').textContent.trim();
-        const newErros = orig.erros.filter(err=>{
-          if (err==='Cartório de origem ausente')
-            return !newParte2.includes('Cartório de origem:');
-          return true;
-        });
-        return { ...orig, parte1:newParte1, parte2:newParte2, erros:newErros };
-      });
-      localStorage.setItem(key, JSON.stringify(sess));
-    }
-
-    populateSessionSelect();
-  </script>
 </body>
 </html>

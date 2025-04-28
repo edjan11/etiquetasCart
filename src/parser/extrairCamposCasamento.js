@@ -56,24 +56,68 @@ function extrairCampos(bloco) {
   const oficiosValidos = ['6', '12', '13', '14', '15', '24', '25', '26', '29'];
   const cartorioOrigemMatch = matchOficio && oficiosValidos.includes(matchOficio[1]) ? matchOficio : null;
   
+// 1) Primeiro, isola só o parágrafo do casamento corretamente
+const blocoCasamento = bloco
+  .split(/(?=Ele registrado|Ela registrada|Ele foi casado|Ela foi casada)/i)[0] // corta ANTES desses trechos
+  .split(/\.(\s+|$)/)[0]; // garante que corta no primeiro ponto final (sem avançar para outras seções)
 
-  const nome1 = match(/casamento civil de:\s*([A-ZÀ-ÚÇÑ\s]+?)(?:,|\s+o qual)/);
-  const nome2 = match(/e\s+([A-ZÀ-ÚÇÑ\s]+?)(?:,|\s+a qual)/);
-    
-  const nome_registrado = (() => {
-    if (genero_registro === 'dele') {
-      const matchNome = bloco.match(/casamento civil de:\s*([A-Z\s]+?),\s+o qual/);
-      return matchNome?.[1]?.trim() ?? nome1;
-    }
-    if (genero_registro === 'dela') {
-      const matchNome = bloco.match(/e\s+([A-Z\s]+?),?\s+a qual/);
-      return matchNome?.[1]?.trim() ?? nome2;
-    }
-    return '';
-  })();
-  
+// 2) Limpa espaço antes da vírgula, que às vezes aparece errado
+const blocoCasamentoCorrigido = blocoCasamento.replace(/ ,/g, ',');
 
-  
+// 3) Extrai todos os blocos em CAIXA ALTA dentro desse trecho (suporte total a acentos)
+const blocosMaiusculosBrutos = [...blocoCasamentoCorrigido.matchAll(/[\p{Lu}\p{M}]+(?:\s+[\p{Lu}\p{M}]+)+/gu)].map(m => m[0].trim());
+
+// 4) Filtra blocos reais (nomes que tenham pelo menos duas palavras e sem palavras pequenas tipo "DE", "DA" sozinhas)
+const blocosMaiusculos = blocosMaiusculosBrutos.filter(nome => {
+  const palavras = nome.trim().split(/\s+/);
+  return palavras.length >= 2 && palavras.every(p => p.length > 2);
+});
+
+// 5) Função para checar se dois nomes começam iguais (primeira palavra igual)
+function nomesComecamIguais(nome1, nome2) {
+  const primeiraPalavra1 = nome1.split(' ')[0];
+  const primeiraPalavra2 = nome2.split(' ')[0];
+  return primeiraPalavra1 === primeiraPalavra2;
+}
+
+// 6) Processo de captura dos cônjuges
+let index = 0;
+let nomeConjuge1 = blocosMaiusculos[index++] || '';
+let nomeConjuge1Alterado = null;
+let nomeConjuge2 = '';
+let nomeConjuge2Alterado = null;
+
+// Função que tenta detectar alteração de nome após o cônjuge no bloco
+function detectarAlteracao(nomeOriginal, texto) {
+  const regex = new RegExp(nomeOriginal + '.*?passou a assinar:\\s*([\\p{Lu}\\p{M}\\s]+)', 'u');
+  const match = texto.match(regex);
+  return match ? match[1].trim() : null;
+}
+
+// Verifica se o primeiro cônjuge mudou de nome
+const trechoPosterior1 = blocoCasamentoCorrigido.slice(blocoCasamentoCorrigido.indexOf(nomeConjuge1));
+nomeConjuge1Alterado = detectarAlteracao(nomeConjuge1, trechoPosterior1);
+
+// Captura segundo cônjuge
+nomeConjuge2 = blocosMaiusculos[index++] || '';
+
+// Verifica se o segundo cônjuge mudou de nome
+const trechoPosterior2 = blocoCasamentoCorrigido.slice(blocoCasamentoCorrigido.indexOf(nomeConjuge2));
+nomeConjuge2Alterado = detectarAlteracao(nomeConjuge2, trechoPosterior2);
+
+// 7) Decide qual usar conforme o gênero do registro
+const nome_registrado = (() => {
+  if (genero_registro === 'dele') {
+    return nomeConjuge1Alterado || nomeConjuge1;
+  }
+  if (genero_registro === 'dela') {
+    return nomeConjuge2Alterado || nomeConjuge2;
+  }
+  return '';
+})();
+
+
+
 
 
   return {
