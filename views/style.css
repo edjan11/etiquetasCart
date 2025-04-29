@@ -1,319 +1,386 @@
 :root {
-    --colors: #4fc3f7, #81c784, #ffb74d, #ba68c8, #ff8a65;
-    --bg: #f0f2f5;
-    --card: #ffffff;
-    --text: #333;
-    --border: rgba(0,0,0,0.1);
-    --accent: #888;
-    --primary: #1976d2;
-    --primary-hover: #1565c0;
-  }
-  
-  .dark {
-    --bg: #1e1e1e;
-    --card: #2a2a2a;
-    --text: #ddd;
-    --border: rgba(255,255,255,0.1);
-    --accent: #aaa;
-    --primary: #0288d1;
-    --primary-hover: #0277bd;
-  }
-  
-  /* Reset e layout geral */
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-  }
-  
-  body {
-    font-family: sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    padding: 20px;
-    transition: background .3s, color .3s;
-  }
-  
-  h1 {
-    margin-bottom: 10px;
-  }
-  
-  /* Botão de tema */
-  .theme-toggle {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 100;
-  }
-  
-  .theme-toggle button {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--accent);
-    transition: background .2s, border-color .2s, color .2s;
-  }
-  
-  .theme-toggle button:hover {
-    background: var(--primary);
-    border-color: var(--primary-hover);
-    color: #fff;
-  }
-  
-  /* Top bar, ferramentas, grupos de botões */
-  #top-bar, #ferramentas, .btn-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    margin-bottom: 15px;
-  }
-  
-  #sessionContainer, #formUpload, #ferramentas, #controls-load {
-    background: var(--card);
-    padding: 12px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px var(--border);
-    transition: background .3s, box-shadow .3s;
-  }
-  
-  select, input[type="file"], input[type="text"], button {
-    padding: 6px 10px;
-    font-size: 14px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
-    transition: background .3s, border-color .3s, color .3s;
-  }
-  
-  button {
-    background: var(--primary);
-    color: #fff;
-    cursor: pointer;
-    transition: background .2s;
-  }
-  
-  button:hover {
-    background: var(--primary-hover);
-  }
-  
-  #controls-load button {
-    background: var(--primary);
-  }
-  
-  #controls-load button:hover {
-    background: var(--primary-hover);
-  }
-  
-  /* Resultados e Resumo de Erros */
-  #resultados {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px,1fr));
-    gap: 15px;
-  }
-  
-  #resumoErros {
-    margin-top: 20px;
-    background: #a58109;
-    padding: 10px;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px var(--border);
-  }
-  
-  /* Cartão do comunicado */
-  .comunicado {
-    position: relative;
-    background: var(--card);
-    border-radius: 8px;
-    box-shadow: 0 2px 6px var(--border);
-    padding: 20px;
-    border-left: 6px solid;
-    transition: transform .2s, opacity .3s, background .3s, box-shadow .3s;
-  }
-  
-  .comunicado:hover {
-    transform: translateY(-3px);
-  }
-  
-  .comunicado.completed {
-    opacity: .6;
-    background: #e8f5e9;
-    text-decoration: line-through;
-  }
-  
-  .numero {
-    position: absolute;
-    top: 12px;
-    right: 16px;
-    font-weight: bold;
-    color: var(--text);
-  }
-  
-  .badge {
-    display: inline-block;
-    padding: 2px 6px;
-    font-size: 12px;
-    border-radius: 4px;
-    color: #fff;
-    margin-left: 8px;
-  }
-  
-  .badge.pendente {
-    background: #f44336;
-  }
-  
-  .badge.concluido {
-    background: #4caf50;
-  }
-  
-  /* Conteúdo editável */
-  .content-editable {
-    border: 1px dashed var(--border);
-    padding: 6px;
-    background: #202022;
-    cursor: text;
-    transition: background .3s, border-color .3s;
-  }
-  
-  .content-editable[contenteditable="true"] {
-    background: #0288d1;
-    outline: 2px dashed #ffc107;
-  }
-  
-  /* Parte 2 */
-  .parte2 {
-    margin-top: 12px;
-    font-style: italic;
-    white-space: pre-line;
-  }
-  
-  /* Botões dentro de comunicado */
-  .btn-group {
-    margin-top: 12px;
-    gap: 6px;
-  }
-  
-  .remove-btn,
-  .btn-group button {
-    padding: 6px 10px;
-    border-radius: 4px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    cursor: pointer;
-    transition: background .2s;
-  }
-  
-  .remove-btn:hover,
-  .btn-group button:hover {
-    background: var(--primary-hover);
-  }
-  
-  /* Input de cartório */
-  .input-cartorio {
-    padding: 6px;
-    font-size: 13px;
-    flex: 1;
-    min-width: 120px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
-  }
+  --colors: #4fc3f7, #81c784, #ffb74d, #ba68c8, #ff8a65;
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #333;
+  --border: rgba(0, 0, 0, 0.1);
+  --accent: #888;
+  --primary: #1976d2;
+  --primary-hover: #1565c0;
+}
 
-  #listaNomes {
-    display: block;
-    position: fixed;
-    top: 80px;
-    right: 20px;
-    width: 300px;
-    background: var(--card);
-    padding: 12px;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px var(--border);
-    overflow-y: auto;
-    max-height: 90vh;
-  }
-  
-  .card-nome {
-    background: var(--card);
-    padding: 10px;
-    margin-bottom: 10px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    box-shadow: 0 1px 2px var(--border);
-  }
-  
-  .nome-conjuge {
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 6px;
-    color: var(--text);
-  }
-  
-  .input-cartorio-lista {
-    width: 100%;
-    padding: 6px;
-    font-size: 13px;
-    margin-bottom: 6px;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    background: var(--card);
-    color: var(--text);
-  }
-  
-  .btn-copiar {
-    width: 100%;
-    padding: 6px;
-    font-size: 13px;
-    background: var(--primary);
-    border: none;
-    border-radius: 4px;
-    color: #fff;
-    cursor: pointer;
-  }
-  .btn-copiar:hover {
-    background: var(--primary-hover);
-  }
-  
-  /* Estilo dos botões de cartório na lista lateral */
+.dark {
+  --bg: #1e1e1e;
+  --card: #2a2a2a;
+  --text: #ddd;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent: #aaa;
+  --primary: #0288d1;
+  --primary-hover: #0277bd;
+}
+
+/* Reset e layout geral */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding: 20px;
+  transition:
+    background 0.3s,
+    color 0.3s;
+}
+
+h1 {
+  margin-bottom: 10px;
+}
+
+/* Botão de tema */
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+}
+
+.theme-toggle button {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent);
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.theme-toggle button:hover {
+  background: var(--primary);
+  border-color: var(--primary-hover);
+  color: #fff;
+}
+
+/* Top bar, ferramentas, grupos de botões */
+#top-bar,
+#ferramentas,
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+#sessionContainer,
+#formUpload,
+#ferramentas,
+#controls-load {
+  background: var(--card);
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px var(--border);
+  transition:
+    background 0.3s,
+    box-shadow 0.3s;
+}
+
+select,
+input[type="file"],
+input[type="text"],
+button {
+  padding: 6px 10px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    color 0.3s;
+}
+
+button {
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+#controls-load button {
+  background: var(--primary);
+}
+
+#controls-load button:hover {
+  background: var(--primary-hover);
+}
+
+/* Resultados e Resumo de Erros */
+#resultados {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 15px;
+}
+
+#resumoErros {
+  margin-top: 20px;
+  background: #a58109;
+  padding: 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px var(--border);
+}
+
+/* Cartão do comunicado */
+.comunicado {
+  position: relative;
+  background: var(--card);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px var(--border);
+  padding: 20px;
+  border-left: 6px solid;
+  transition:
+    transform 0.2s,
+    opacity 0.3s,
+    background 0.3s,
+    box-shadow 0.3s;
+}
+
+.comunicado:hover {
+  transform: translateY(-3px);
+}
+
+.comunicado.completed {
+  opacity: 0.6;
+  background: #e8f5e9;
+  text-decoration: line-through;
+}
+
+.numero {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  font-weight: bold;
+  color: var(--text);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: #fff;
+  margin-left: 8px;
+}
+
+.badge.pendente {
+  background: #f44336;
+}
+
+.badge.concluido {
+  background: #4caf50;
+}
+
+/* Conteúdo editável */
+.content-editable {
+  border: 1px dashed var(--border);
+  padding: 6px;
+  background: #202022;
+  cursor: text;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+}
+
+.content-editable[contenteditable="true"] {
+  background: #0288d1;
+  outline: 2px dashed #ffc107;
+}
+
+/* Parte 2 */
+.parte2 {
+  margin-top: 12px;
+  font-style: italic;
+  white-space: pre-line;
+}
+
+/* Botões dentro de comunicado */
+.btn-group {
+  margin-top: 12px;
+  gap: 6px;
+}
+
+.remove-btn,
+.btn-group button {
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: none;
+  background: var(--primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.remove-btn:hover,
+.btn-group button:hover {
+  background: var(--primary-hover);
+}
+
+/* Input de cartório */
+.input-cartorio {
+  padding: 6px;
+  font-size: 13px;
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+}
+
+#listaNomes {
+  display: block;
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 300px;
+  background: var(--card);
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px var(--border);
+  overflow-y: auto;
+  max-height: 90vh;
+}
+
+.card-nome {
+  background: var(--card);
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px var(--border);
+}
+
+.nome-conjuge {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+
+.input-cartorio-lista {
+  width: 100%;
+  padding: 6px;
+  font-size: 13px;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card);
+  color: var(--text);
+}
+
+.btn-copiar {
+  width: 100%;
+  padding: 6px;
+  font-size: 13px;
+  background: var(--primary);
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+}
+.btn-copiar:hover {
+  background: var(--primary-hover);
+}
+
+/* Estilo dos botões de cartório na lista lateral */
 .botoes-cartorio button {
-    margin: 4px 3px;
-    padding: 6px 10px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.2s, color 0.2s, border-color 0.2s;
-  }
-  
-  .botoes-cartorio button:hover {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary-hover);
-  }
-  
-  /* Deixa o botão levemente marcado após clique (simples visual) */
-  .botoes-cartorio button:focus {
-    outline: 2px solid var(--primary);
-  }
-  
-  .botoes-cartorio button.selected {
-    background: var(--primary);
-    color: #fff;
-    border-color: var(--primary-hover);
-  }
-  
-  .comunicado.highlight {
-    background-color: #fff9c4; /* amarelo claro */
-    transition: background-color 2s ease-out;
-  }
-  
+  margin: 4px 3px;
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.botoes-cartorio button:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-hover);
+}
+
+/* Deixa o botão levemente marcado após clique (simples visual) */
+.botoes-cartorio button:focus {
+  outline: 2px solid var(--primary);
+}
+
+.botoes-cartorio button.selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary-hover);
+}
+
+.comunicado.highlight {
+  background-color: #fff9c4; /* amarelo claro */
+  transition: background-color 2s ease-out;
+}
+
+.conjuge-card {
+  background: #1f1f1f;
+  color: #eee;
+  padding: 1em;
+  margin: 0.8em 0; /* separação vertical entre os cards */
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* sombra suave */
+  border: 1px solid #333;
+}
+
+.conjuge-card .card-header {
+  margin-bottom: 0.6em;
+}
+
+.conjuge-card .origem-info {
+  font-size: 0.9em;
+  color: #bbb;
+  margin-top: 0.3em;
+}
+
+.conjuge-card .botoes-cartorio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 0.6em;
+}
+
+.conjuge-card button {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 0.4em 0.6em;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+}
+
+.conjuge-card button:hover {
+  background: #0056b3;
+}

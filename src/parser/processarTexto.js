@@ -1,5 +1,8 @@
-const { separarComunicados, extrairCampos } = require('./extrairCamposCasamento');
-const { validarComunicado } = require('./validarComunicado');
+const {
+  separarComunicados,
+  extrairCampos,
+} = require("./extrairCamposCasamento");
+const { validarComunicado } = require("./validarComunicado");
 
 function processarTexto(texto) {
   const blocos = separarComunicados(texto);
@@ -14,7 +17,7 @@ function processarTexto(texto) {
       id: index + 1,
       ...campos,
       erros: validacao.erros,
-      valido: validacao.valido
+      valido: validacao.valido,
     });
 
     if (!validacao.valido) {
