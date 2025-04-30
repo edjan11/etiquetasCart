@@ -12,7 +12,7 @@ const app = express();
 const upload = multer({ dest: "uploads/" });
 
 app.use(express.static(path.join(__dirname, "views")));
-app.use(express.json());
+app.use(express.json({ limit: "10mb" })); // ou até mais se necessário
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
