@@ -1,3 +1,0 @@
-> git push -u origin main
-remote: Repository not found.
-fatal: repository 'https://github.com/edjan11/etiquetas-cartorio.git/' not found
