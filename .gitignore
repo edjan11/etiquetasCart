@@ -2,3 +2,5 @@ node_modules/
 log-etiquetas.txt
 npm-debug.log*
 .DS_Store
+comunicados.db
+comunicados.db.bak
