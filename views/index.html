@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Comunicados</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- Botão de alternar tema -->
+    <div class="theme-toggle">
+      <button id="themeToggle" title="Alternar tema">☾</button>
+    </div>
+
+    <h1>Processador de Comunicados</h1>
+
+    <!-- Barra de envio -->
+    <div id="top-bar">
+      <form id="formUpload">
+        <input
+          id="fileInput"
+          type="file"
+          name="pdf"
+          accept="application/pdf"
+          required
+        />
+        <select id="escreventeSelect">
+          <option value="">Selecionar escrevente</option>
+          <option>Edjan Santos Melo</option>
+          <option>Gabriela Maria Gama de Almeida</option>
+        </select>
+        <button type="submit">Enviar PDF</button>
+        <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
+      </form>
+    </div>
+
+  <div id="controls-load">
+    <label for="sessionSelect"><strong>Continuar PDF:</strong></label>
+    <select id="sessionSelect">
+      <option value="">Nova Sessão</option>
+    </select>
+
+    <button id="btnCarregarSessao">🔄 Carregar Sessão</button>
+    <button id="btnRenomearSessao" type="button">✏️ Renomear</button>
+    <button id="btnArquivarSessao" type="button">🗄️ Arquivar</button>
+  </div>
+
+      <div id="controls-archived">
+      <label for="archivedSessionSelect"><strong>Arquivados:</strong></label>
+      <select id="archivedSessionSelect">
+        <option value="">Nenhuma sessão arquivada</option>
+      </select>
+      <button id="btnCarregarArquivada" type="button">📂 Abrir arquivada</button>
+    </div>
+
+
+
+    <!-- Ferramentas -->
+    <div id="ferramentas">
+      <input id="buscaComunicados" placeholder="🔍 Buscar..." />
+      <button id="filtroPendentes">Mostrar só pendentes</button>
+    </div>
+
+    <!-- Resultados e Erros -->
+    <div id="resultados"></div>
+    <div id="resumoErros"></div>
+
+    <!-- Botão padrão para abrir/fechar a lista -->
+    <button
+      id="toggleListaNomes"
+      style="
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        z-index: 9999;
+        padding: 8px 14px;
+        font-size: 14px;
+        background: var(--primary);
+        border: 1px solid var(--primary-hover);
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+      "
+    >
+      👥
+    </button>
+
+    <!-- Lista de cônjuges (começa escondida) -->
+    <div
+      id="listaConjuges"
+      style="
+        position: fixed;
+        top: 130px;
+        right: 20px;
+        width: 300px;
+        background: var(--card);
+        padding: 10px;
+        border-radius: 6px;
+        box-shadow: 0 2px 6px var(--border);
+        overflow-y: auto;
+        max-height: 90vh;
+        display: none;
+      "
+    >
+      <div id="listaNomes"></div>
+    </div>
+
+    <!-- Carregar o script principal -->
+
+  <!-- Scripts do aplicativo (ordem obrigatória) -->
+  <script src="state.js"></script>
+  <script src="apiSessions.js"></script>
+  <script src="renderComunicados.js"></script>
+  <script src="sessionLogic.js"></script>
+  <script src="events.js"></script>
+
+  <!-- Carregar o flutuável (continua igual) -->
+  <script src="draggable.js"></script>
+
+  </body> 
+</html>

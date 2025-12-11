@@ -1,0 +1,525 @@
+:root {
+  --colors: #38bdf8, #22c55e, #fbbf24, #a855f7, #fb923c;
+
+  --bg: #0f172a;          /* fundo escuro elegante */
+  --bg-soft: #111827;
+  --card: #020617;        /* cards quase pretos, estilo dashboard */
+  --card-soft: #020617;
+  --text: #e5e7eb;
+  --text-soft: #9ca3af;
+  --border: rgba(148, 163, 184, 0.4);
+  --accent: #64748b;
+
+  --primary: #3b82f6;     /* azul moderno */
+  --primary-hover: #2563eb;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+}
+
+.dark {
+  /* mesma paleta, já está em dark mode por padrão */
+}
+
+/* =========================
+   Reset + layout base
+========================= */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 18px;
+  color: #f9fafb;
+}
+
+/* container geral (centralizar) */
+body > *:not(.theme-toggle) {
+  max-width: 1240px;
+  margin-inline: auto;
+}
+
+/* =========================
+   Botão de tema
+========================= */
+
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+}
+
+.theme-toggle button {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--accent);
+  backdrop-filter: blur(12px);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.theme-toggle button:hover {
+  background: rgba(30, 64, 175, 0.95);
+  border-color: #60a5fa;
+  color: #e5e7eb;
+  transform: translateY(-1px);
+}
+
+/* =========================
+   Cards de layout (topo/ferramentas)
+========================= */
+
+#sessionContainer,
+#formUpload,
+#ferramentas,
+#controls-load,
+#controls-archived {
+  background: rgba(15, 23, 42, 0.9);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  margin-bottom: 14px;
+}
+
+/* barra de envio */
+#top-bar,
+#ferramentas,
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* controles de sessão */
+#controls-load,
+#controls-archived {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+#controls-load label,
+#controls-archived label {
+  min-width: 130px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+#sessionSelect,
+#archivedSessionSelect {
+  min-width: 260px;
+}
+
+/* =========================
+   Inputs / selects / botões
+========================= */
+
+select,
+input[type="file"],
+input[type="text"],
+button {
+  font-size: 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  color: var(--text);
+  padding: 8px 14px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.08s ease;
+}
+
+select:focus,
+input[type="text"]:focus,
+input[type="file"]:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.7);
+}
+
+/* botão padrão */
+button {
+  background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+  border: none;
+  color: #f9fafb;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+button:hover {
+  background: linear-gradient(135deg, var(--primary-hover), #1d4ed8);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.45);
+}
+
+button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* botão “secundário” por contexto (usando mesma tag) */
+#btnRenomearSessao,
+#btnArquivarSessao,
+#btnCarregarArquivada {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.8);
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+#btnRenomearSessao:hover,
+#btnArquivarSessao:hover,
+#btnCarregarArquivada:hover {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: var(--primary);
+  color: #e5e7eb;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.9);
+}
+
+/* botão "Mostrar só pendentes" */
+#ferramentas button {
+  border-radius: 999px;
+}
+
+/* campo de busca */
+#buscaComunicados {
+  width: 220px;
+  background: rgba(15, 23, 42, 0.95);
+}
+
+/* =========================
+   Grid de resultados + resumo
+========================= */
+
+#resultados {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 14px;
+  margin-top: 10px;
+}
+
+#resumoErros {
+  margin-top: 18px;
+  background: rgba(120, 53, 15, 0.9);
+  color: #fef3c7;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(252, 211, 77, 0.6);
+  font-size: 13px;
+}
+
+/* =========================
+   Cartão do comunicado
+========================= */
+
+.comunicado {
+  position: relative;
+  background: var(--card-soft);
+  border-radius: 14px;
+  padding: 16px 16px 14px 16px;
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.9);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease;
+}
+
+.comunicado:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 45px rgba(15, 23, 42, 0.95);
+}
+
+.comunicado.completed {
+  opacity: 0.55;
+  background: rgba(22, 163, 74, 0.1);
+  border-left-color: var(--success);
+  text-decoration: line-through;
+}
+
+/* número do comunicado */
+.numero {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+/* badge de status */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 999px;
+  color: #0b1120;
+  background: #e5e7eb;
+  margin-left: 6px;
+}
+
+.badge.pendente {
+  background: rgba(248, 113, 113, 0.9);
+}
+
+.badge.concluido {
+  background: rgba(74, 222, 128, 0.9);
+}
+
+/* =========================
+   Conteúdo editável / texto
+========================= */
+
+.content-editable {
+  border-radius: 10px;
+  border: 1px dashed rgba(148, 163, 184, 0.7);
+  padding: 10px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  cursor: text;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.content-editable[contenteditable="true"] {
+  background: rgba(30, 64, 175, 0.2);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.7);
+}
+
+/* parte 2 */
+.parte2 {
+  margin-top: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-soft);
+  white-space: pre-line;
+}
+
+/* erros no rodapé de cada comunicado */
+.erros {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #fecaca;
+}
+
+/* =========================
+   Botões dentro do comunicado
+========================= */
+
+.btn-group {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.remove-btn,
+.btn-group button {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.remove-btn {
+  background: var(--danger);
+}
+
+.remove-btn:hover {
+  background: #b91c1c;
+}
+
+/* input de cartório dentro do card */
+.input-cartorio {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 999px;
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text);
+}
+
+/* highlight quando foca pelo "Ir para" */
+.comunicado.highlight {
+  box-shadow: 0 0 0 2px rgba(253, 224, 71, 0.9);
+  background-color: rgba(250, 250, 210, 0.04);
+}
+
+/* =========================
+   Lista lateral de cônjuges
+========================= */
+
+#listaConjuges {
+  /* já tem position inline; aqui só refinamos o visual */
+}
+
+#listaNomes {
+  display: block;
+  position: fixed;
+  top: 90px;
+  right: 20px;
+  width: 280px;
+  background: rgba(15, 23, 42, 0.98);
+  padding: 14px;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 1);
+  overflow-y: auto;
+  max-height: 80vh;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+/* card individual da lista lateral */
+.conjuge-card {
+  background: rgba(15, 23, 42, 0.95);
+  color: #e5e7eb;
+  padding: 10px 10px 8px 10px;
+  margin: 0 0 10px 0;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  font-size: 13px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.9);
+}
+
+.conjuge-card strong {
+  font-size: 13px;
+}
+
+/* botões da lista lateral */
+.botoes-cartorio {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.botoes-cartorio button {
+  margin: 0;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.7);
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.botoes-cartorio button:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: #60a5fa;
+  color: #e5e7eb;
+}
+
+.botoes-cartorio button.selected-cartorio {
+  background: rgba(37, 99, 235, 0.9);
+  border-color: #93c5fd;
+  color: #f9fafb;
+}
+
+/* botão copiar da lista lateral */
+.btn-copiar {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  color: #ecfdf3;
+}
+
+.btn-copiar:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+}
+
+/* inputs de cartório na lista (se usados) */
+.input-cartorio-lista {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  margin-bottom: 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.95);
+  color: var(--text);
+}
+
+/* =========================
+   Responsividade simples
+========================= */
+
+@media (max-width: 768px) {
+  body {
+    padding: 16px;
+  }
+
+  #resultados {
+    grid-template-columns: 1fr;
+  }
+
+  #listaNomes {
+    width: 240px;
+    top: 100px;
+  }
+
+  #sessionSelect,
+  #archivedSessionSelect {
+    min-width: 200px;
+  }
+}
+
+.lista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+.lista-titulo {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}

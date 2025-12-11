@@ -1,0 +1,4 @@
+node_modules/
+log-etiquetas.txt
+npm-debug.log*
+.DS_Store
