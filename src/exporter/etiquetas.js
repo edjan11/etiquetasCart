@@ -4,10 +4,11 @@ function limparTexto(texto) {
   if (!texto) return "";
 
   const textoLimpo = String(texto)
-    .replace(/\s{2,}/g, " ") // múltiplos espaços → 1
+    .replace(/\r\n/g, "\n")          // normaliza CRLF -> LF
+    .replace(/[ \t]{2,}/g, " ")      // compacta APENAS espaços e tabs (não mexe em \n)
     .replace(/([a-zà-ú])([A-ZÀ-Ú])/g, "$1 $2") // separa grudados
-    .replace(/\s([.,;:!?])/g, "$1") // tira espaço antes de pontuação
-    .replace(/([.,;:!?])(?=\S)/g, "$1 ") // adiciona espaço após pontuação
+    .replace(/\s([.,;:!?])/g, "$1")           // tira espaço antes de pontuação
+    .replace(/([.,;:!?])(?=\S)/g, "$1 ")      // adiciona espaço após pontuação
     .trim();
 
   // separação automática em dois parágrafos
@@ -24,10 +25,11 @@ function limparTexto(texto) {
   return textoLimpo;
 }
 
+
 function gerarEtiquetasPDF(etiquetas = []) {
   return new Promise((resolve, reject) => {
     const largura = 127.5; // 4.5 cm
-    const altura = 255; // 9 cm
+    const altura = 400; // 9 cm
     const padding = 5.67; // 0.2 cm (~4pt)
 
     const doc = new PDFDocument({
@@ -51,14 +53,14 @@ function gerarEtiquetasPDF(etiquetas = []) {
       doc
         .font("Helvetica-Bold")
         .fontSize(9)
-        .text("Cartório do 9º Ofício de Aracaju/SE", padding, padding, {
+        .text("Cartório do 9º Ofício de Aracaju/SE", padding, padding +8, {
           width: larguraUtil,
           align: "center",
         });
 
       // Texto corrido justificado
       doc.moveDown(0.5);
-      doc.font("Helvetica").fontSize(7.0);
+      doc.font("Helvetica").fontSize(7.5);
 
       const paragrafos = texto.includes("\n\n")
         ? texto.split("\n\n")

@@ -36,9 +36,16 @@ form.addEventListener('submit', async e => {
     erros,
     completos: [],
   });
+  // 🔥 ESSENCIAL
+  await populateSessionSelect();
 
+  // agora sim o option existe
   currentSessionId = newId;
   sessionSelect.value = newId;
+
+  await loadSession(newId);
+
+  // opcional, mas coerente
   fileInput.disabled = true;
 });
 
@@ -121,6 +128,8 @@ exportarPDFBtn.addEventListener('click', async () => {
   }
 });
 
+
+
 // ===============================
 // 📝 Renomear sessão selecionada
 // ===============================
@@ -149,6 +158,32 @@ btnRenomearSessao.addEventListener('click', async () => {
     alert('Erro ao renomear sessão.');
   }
 });
+
+const btnExcluirArquivada = document.getElementById('btnExcluirArquivada');
+
+btnExcluirArquivada.addEventListener('click', async () => {
+  const id = archivedSessionSelect.value;
+
+  if (!id) {
+    alert("Selecione uma sessão arquivada para excluir.");
+    return;
+  }
+
+  if (!confirm("Tem certeza? Essa sessão será excluída DEFINITIVAMENTE.")) {
+    return;
+  }
+
+  try {
+    await apiDeleteSession(id);
+    await populateSessionSelect(); // recarrega listas
+    archivedSessionSelect.value = "";
+    alert("Sessão excluída com sucesso.");
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao excluir sessão.");
+  }
+});
+
 
 // ===============================
 // 🗄️ Arquivar sessão selecionada
@@ -224,6 +259,40 @@ function focusComunicado(id) {
   el.classList.add('highlight');
   setTimeout(() => el.classList.remove('highlight'), 2000);
 }
+
+// ===============================
+// 📄 Relatório TXT (pendentes)
+// ===============================
+exportarRelatorioTxtBtn.addEventListener('click', async () => {
+  // garante que o estado atual da tela foi salvo na sessão
+  await persistSession();
+
+  if (!currentSessionId) {
+    alert("Nenhuma sessão carregada.");
+    return;
+  }
+
+  const sess = await apiLoadSession(currentSessionId);
+  const comunicados = sess?.payload?.comunicados || [];
+
+  // pendente = ainda não tem "Cartório de origem:" no texto
+  const pendentes = comunicados.filter(c =>
+    !/Cartório de origem:/i.test(c.parte2 || "")
+  );
+
+  const pendCasamento = [];
+  const pendNascimento = [];
+
+  pendentes.forEach(c => {
+    const tipo = inferirTipoComunicado(c); // já existe em renderComunicados.js
+    if (tipo === "NASCIMENTO") pendNascimento.push(c);
+    else pendCasamento.push(c);
+  });
+
+  // gera TXT no teu formato atual (R:, P:, P2:, L/F/T etc.)
+  exportPendentesTxt(pendCasamento, pendNascimento);
+});
+
 
 // ===============================
 // 🔄 Inicialização

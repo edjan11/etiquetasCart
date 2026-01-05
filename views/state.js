@@ -19,6 +19,12 @@ const loadBtn = document.getElementById('btnCarregarSessao');
 const archivedSessionSelect = document.getElementById('archivedSessionSelect');
 const loadArchivedBtn = document.getElementById('btnCarregarArquivada');
 const escreventeSelect = document.getElementById('escreventeSelect');
+if (escreventeSelect) {
+  // força valor padrão ao abrir a página
+  escreventeSelect.value = 'Edjan Santos Melo';
+  escrevente = escreventeSelect.value;
+}
+
 const busca = document.getElementById('buscaComunicados');
 const filtroBtn = document.getElementById('filtroPendentes');
 const container = document.getElementById('resultados');
@@ -27,6 +33,8 @@ const listaNomes = document.getElementById('listaNomes');
 const toggleListaNomes = document.getElementById('toggleListaNomes');
 const listaConjuges = document.getElementById('listaConjuges');
 const exportarPDFBtn = document.getElementById('exportarPDF');
+const exportarRelatorioTxtBtn = document.getElementById('exportarRelatorioTxt');
+
 
 // ===============================
 // 🌙 Tema persistente

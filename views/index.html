@@ -29,8 +29,9 @@
           <option>Edjan Santos Melo</option>
           <option>Gabriela Maria Gama de Almeida</option>
         </select>
-        <button type="submit">Enviar PDF</button>
-        <button type="button" id="exportarPDF">🏷️ Exportar Etiquetas</button>
+        <button type="submit">Processar Etiquetas</button>
+        <button type="button" id="exportarPDF">🏷️ Exportar PDF para impressão</button>
+        <button type="button" id="exportarRelatorioTxt">📄 Relatório TXT</button>
       </form>
     </div>
 
@@ -40,7 +41,7 @@
       <option value="">Nova Sessão</option>
     </select>
 
-    <button id="btnCarregarSessao">🔄 Carregar Sessão</button>
+    <button id="btnCarregarSessao">🔄 Carregar</button>
     <button id="btnRenomearSessao" type="button">✏️ Renomear</button>
     <button id="btnArquivarSessao" type="button">🗄️ Arquivar</button>
   </div>
@@ -51,6 +52,10 @@
         <option value="">Nenhuma sessão arquivada</option>
       </select>
       <button id="btnCarregarArquivada" type="button">📂 Abrir arquivada</button>
+    <button id="btnExcluirArquivada" type="button" style="background: var(--danger);">
+  🗑️ Excluir
+</button>
+
     </div>
 
 

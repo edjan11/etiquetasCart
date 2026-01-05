@@ -1,3 +1,6 @@
+// ===============================
+// 📌 Dependências
+// ===============================
 const express = require("express");
 const multer = require("multer");
 const path = require("path");
@@ -5,24 +8,34 @@ const fs = require("fs");
 const pdf = require("pdf-parse");
 const { processarTexto } = require("./src/parser/processarTexto");
 const gerarEtiqueta = require("./src/exporter/gerarEtiquetaCasamento");
-const PDFDocument = require("pdfkit");
 const { gerarEtiquetasPDF } = require("./src/exporter/etiquetas");
+const Database = require("better-sqlite3");
+
+const dbPath = path.join(__dirname, "comunicados.db");
+const db = new Database(dbPath);
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
 
 
+app.use(express.json({ limit: "10mb" }));
+
+// Log básico
 app.use((req, res, next) => {
   console.log("🔥 REQ:", req.method, req.url);
   next();
 });
 
-app.use(express.json({ limit: "10mb" })); // ou até mais se necessário
-
+// ===============================
+// 📌 Página principal
+// ===============================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
 });
 
+// ===============================
+// 📌 Upload PDF → Processar comunicados
+// ===============================
 app.post("/upload", upload.single("pdf"), async (req, res) => {
   try {
     const buffer = fs.readFileSync(req.file.path);
@@ -31,9 +44,9 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
 
     const { resultados, relatorio } = processarTexto(text);
 
-    const comunicadosComEtiqueta = resultados.map((comunicado) => ({
-      ...comunicado,
-      ...gerarEtiqueta(comunicado),
+    const comunicadosComEtiqueta = resultados.map((c) => ({
+      ...c,
+      ...gerarEtiqueta(c),
     }));
 
     res.json({
@@ -46,62 +59,76 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
   }
 });
 
+// ===============================
+// 📌 Gerar PDF final de etiquetas
+// ===============================
 app.post("/gerar-etiquetas", async (req, res) => {
-  const comunicados = req.body.comunicados;
-
-  if (!Array.isArray(comunicados) || comunicados.length === 0) {
-    return res.status(400).json({ error: "Array de comunicados inválido." });
-  }
-
   try {
+    const comunicados = req.body.comunicados;
+    if (!Array.isArray(comunicados) || comunicados.length === 0) {
+      return res.status(400).json({ error: "Array de comunicados inválido." });
+    }
+
     const textos = comunicados.map((c) => c.texto);
     const buffer = await gerarEtiquetasPDF(textos);
 
     res.setHeader("Content-Disposition", "attachment; filename=etiquetas.pdf");
     res.setHeader("Content-Type", "application/pdf");
     res.send(buffer);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao gerar PDF." });
   }
 });
 
-// ===========================================
-// 🔵 Persistência em Banco (SQLite)
-// ===========================================
-const Database = require("better-sqlite3");
-const db = new Database("comunicados.db");
+// ===============================
+// 📌 Banco SQLite + Tabela
+// ===============================
 
-// Cria tabela caso não exista
-db.prepare(`
+
+db.exec(`
   CREATE TABLE IF NOT EXISTS sessions (
     id TEXT PRIMARY KEY,
-    label TEXT,
-    data TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  )
-`).run();
+    label TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    archived INTEGER DEFAULT 0,
+    createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+    updatedAt TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+`);
+
+// ✅ MIGRAÇÃO: adicionar coluna archived se não existir
+const cols = db.prepare(`PRAGMA table_info(sessions)`).all();
+const hasArchived = cols.some(c => c.name === "archived");
+
+if (!hasArchived) {
+  db.exec(`ALTER TABLE sessions ADD COLUMN archived INTEGER DEFAULT 0;`);
+}
+
+
 
 // ===============================
-// 🔵 Salvar sessão
+// 📌 Salvar sessão
 // ===============================
 app.post("/session/:id", (req, res) => {
   try {
     const id = req.params.id;
     const { label, payload } = req.body;
-    const now = new Date().toISOString();
     const json = JSON.stringify(payload);
+    const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO sessions (id, label, data, updated_at)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO sessions (id, label, payload)
+      VALUES (?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         label = excluded.label,
-        data = excluded.data,
-        updated_at = excluded.updated_at
+        payload = excluded.payload,
+        updatedAt = ?
     `).run(id, label, json, now);
 
     res.json({ ok: true });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro ao salvar sessão." });
@@ -109,115 +136,176 @@ app.post("/session/:id", (req, res) => {
 });
 
 // ===============================
-// 🔵 Carregar sessão
+// 📌 Carregar sessão
 // ===============================
 app.get("/session/:id", (req, res) => {
   try {
     const id = req.params.id;
-    const row = db.prepare("SELECT data, label FROM sessions WHERE id = ?").get(id);
+
+    const row = db.prepare(`
+      SELECT id, label, payload, archived, createdAt, updatedAt
+      FROM sessions
+      WHERE id = ?
+    `).get(id);
+
     if (!row) return res.json(null);
 
+    let payload = {};
+    try { payload = JSON.parse(row.payload); } catch {}
+
     res.json({
+      id: row.id,
       label: row.label,
-      payload: JSON.parse(row.data)
+      archived: !!row.archived,
+      payload,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
     });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: "Erro ao carregar sessão." });
   }
 });
 
 // ===============================
-// 🔵 Listar sessões (para o select)
+// 📌 Listar sessões
 // ===============================
 app.get("/sessions", (req, res) => {
   try {
-    const rows = db.prepare("SELECT id, label FROM sessions ORDER BY updated_at DESC").all();
-    res.json(rows);
+    const rows = db.prepare(`
+      SELECT id, label, archived, updatedAt
+      FROM sessions
+      ORDER BY updatedAt DESC
+    `).all();
+
+    return res.json(rows);
+
   } catch (err) {
     console.error("ERRO SQL /sessions:", err);
-    res.status(500).json({ error: "Erro ao listar sessões." });
+    return res.status(500).json({
+      error: "Erro ao listar sessões.",
+      details: String(err?.message || err),
+      dbPath,
+    });
   }
 });
 
-// Renomear sessão (better-sqlite3)
-app.patch('/session/:id/rename', (req, res) => {
-  const { id } = req.params;
-  const { label } = req.body;
 
-  if (!label || !label.trim()) {
-    return res.status(400).json({ error: 'Label inválido' });
-  }
-
-  const now = new Date().toISOString();
-
+// ===============================
+// 📌 Renomear sessão
+// ===============================
+app.patch("/session/:id/rename", (req, res) => {
   try {
-    const stmt = db.prepare(`
-      UPDATE sessions
-      SET label = ?, updated_at = ?
-      WHERE id = ?
-    `);
+    const id = req.params.id;
+    const { label } = req.body;
 
-    const info = stmt.run(label.trim(), now, id);
-
-    if (info.changes === 0) {
-      return res.status(404).json({ error: 'Sessão não encontrada' });
-    }
-
-    return res.json({ id, label: label.trim() });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Erro ao renomear sessão' });
-  }
-});
-
-// Arquivar / desarquivar sessão (better-sqlite3)
-app.patch('/session/:id/archive', (req, res) => {
-  const { id } = req.params;
-
-  try {
-    const row = db
-      .prepare('SELECT label FROM sessions WHERE id = ?')
-      .get(id);
-
-    if (!row) {
-      return res.status(404).json({ error: 'Sessão não encontrada' });
-    }
-
-    let newLabel;
-    if (row.label.startsWith('[ARQ] ')) {
-      // desarquivar
-      newLabel = row.label.replace(/^\[ARQ\]\s*/, '');
-    } else {
-      // arquivar
-      newLabel = `[ARQ] ${row.label}`;
+    if (!label || !label.trim()) {
+      return res.status(400).json({ error: "Label inválido" });
     }
 
     const now = new Date().toISOString();
 
-    const info = db
-      .prepare(`
-        UPDATE sessions
-        SET label = ?, updated_at = ?
-        WHERE id = ?
-      `)
-      .run(newLabel, now, id);
+    const info = db.prepare(`
+      UPDATE sessions
+      SET label = ?, updatedAt = ?
+      WHERE id = ?
+    `).run(label.trim(), now, id);
 
     if (info.changes === 0) {
-      return res.status(404).json({ error: 'Sessão não encontrada ao arquivar' });
+      return res.status(404).json({ error: "Sessão não encontrada" });
     }
 
-    return res.json({ id, label: newLabel });
+    res.json({ id, label: label.trim() });
+
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Erro ao arquivar sessão' });
+    res.status(500).json({ error: "Erro ao renomear sessão." });
+  }
+});
+
+// ===============================
+// 📌 Arquivar / Desarquivar sessão
+// ===============================
+app.patch("/session/:id/archive", (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const row = db.prepare("SELECT label FROM sessions WHERE id = ?").get(id);
+    if (!row) {
+      return res.status(404).json({ error: "Sessão não encontrada" });
+    }
+
+    let newLabel;
+    if (row.label.startsWith("[ARQ] ")) {
+      newLabel = row.label.replace("[ARQ] ", "");
+    } else {
+      newLabel = "[ARQ] " + row.label;
+    }
+
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      UPDATE sessions
+      SET label = ?, updatedAt = ?
+      WHERE id = ?
+    `).run(newLabel, now, id);
+
+    res.json({ id, label: newLabel });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Erro ao arquivar sessão." });
+  }
+});
+
+// ===============================
+// 📌 Excluir sessão
+// ===============================
+app.post("/session/:id", (req, res) => {
+  try {
+    const id = req.params.id;
+    const { label, payload } = req.body;
+
+    if (!label) throw new Error("label veio vazio/undefined");
+    const json = JSON.stringify(payload ?? {}); // <- impede NULL
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO sessions (id, label, payload, updatedAt)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        label = excluded.label,
+        payload = excluded.payload,
+        updatedAt = excluded.updatedAt
+    `).run(id, label, json, now);
+
+    return res.json({ ok: true });
+
+  } catch (err) {
+    console.error("ERRO SQL /session/:id:", err);
+    return res.status(500).json({
+      error: "Erro ao salvar sessão.",
+      details: String(err?.message || err),
+      body: req.body,
+      dbPath,
+    });
   }
 });
 
 
+
+// ===============================
+// 📌 Arquivos estáticos
+// ===============================
 app.use(express.static(path.join(__dirname, "views")));
 
 
 
-app.listen(3000, () => {
-  console.log("✅ Acesse: http://localhost:3000");
+// ===============================
+// 📌 Inicializar servidor
+// ===============================
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });

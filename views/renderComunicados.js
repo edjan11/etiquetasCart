@@ -1,200 +1,222 @@
 // ===============================
 // 🔵 Renderização dos comunicados
 // ===============================
-
 function renderComunicados(comunicados, erros, completosSet) {
   container.innerHTML = '';
   listaNomes.innerHTML = '';
   resumoEl.innerHTML = '';
 
-  // lista lateral (somente quem está sem cartório)
-  const pendentesSemCartorio = comunicados.filter(
-    com =>
-      com.erros?.includes('Cartório de origem ausente') &&
-      com.nome_registrado
-  );
+  // ======================================================
+  // 🔵 1) LATERAL — SEMPRE MOSTRAR TODOS COM NOME
+  // ======================================================
 
-  // separa em casamento x nascimento (heurística)
-  const pendCasamento = [];
-  const pendNascimento = [];
+  const todosLateral = comunicados.filter(c => c.nome_registrado);
 
-  pendentesSemCartorio.forEach(com => {
+  const nasc = [];
+  const cas = [];
+
+  todosLateral.forEach(com => {
     const tipo = inferirTipoComunicado(com);
-    if (tipo === 'NASCIMENTO') pendNascimento.push(com);
-    else pendCasamento.push(com);
+    if (tipo === "NASCIMENTO") nasc.push(com);
+    else cas.push(com);
   });
 
-  // header da lista lateral + botão TXT
-  if (pendentesSemCartorio.length) {
-    const header = document.createElement('div');
-    header.className = 'lista-header';
-    header.innerHTML = `
-      <span>Pendências de cartório (${pendentesSemCartorio.length})</span>
-      <button type="button" class="btn-copiar" id="btnExportPendentes">
-        ⬇ TXT pendentes
-      </button>
+  // função para criar cards laterais
+  function montarCardLateral(com) {
+    const nomeCard = document.createElement("div");
+    nomeCard.className = "conjuge-card";
+
+    // detectar cartório salvo no texto
+    const cartorioSalvo = (com.parte2 || "").match(/Cartório de origem:\s*(\d+)/i);
+    const numeroSalvo = cartorioSalvo ? Number(cartorioSalvo[1]) : null;
+
+    // se já tiver cartório → card acinzentado
+    if (numeroSalvo) {
+      nomeCard.classList.add("card-lateral-selecionado");
+    }
+
+    nomeCard.innerHTML = `
+      <strong>${com.nome_registrado}</strong>
+
+      <div class="botoes-cartorio" data-card="${com.id}">
+        ${[6,12,13,14,15].map(n => `
+          <button
+            class="btn-cartorio ${numeroSalvo === n ? 'btn-cartorio-ativo' : ''}"
+            data-id="${com.id}"
+            data-cartorio="${n}"
+          >${n}</button>
+        `).join("")}
+      </div>
+
+      <div style="display:flex; gap:6px;">
+        <button class="btn-copiar" onclick="navigator.clipboard.writeText('${com.nome_registrado}')">
+          📋 Copiar Nome
+        </button>
+        <button class="btn-copiar" onclick="focusComunicado('${com.id}')">
+          🔍 Ir para
+        </button>
+      </div>
     `;
-    listaNomes.appendChild(header);
-  }
 
-  function adicionaSecaoLateral(titulo, lista) {
-    if (!lista.length) return;
+    listaNomes.appendChild(nomeCard);
 
-    const tituloEl = document.createElement('div');
-    tituloEl.className = 'lista-titulo';
-    tituloEl.textContent = titulo;
-    listaNomes.appendChild(tituloEl);
+    // listeners
+    nomeCard.querySelectorAll(".btn-cartorio").forEach(btn => {
+      btn.addEventListener("click", () => {
 
-    lista.forEach(com => {
-      const nomeCard = document.createElement('div');
-      nomeCard.className = 'conjuge-card';
-      nomeCard.innerHTML = `
-        <strong>${com.nome_registrado}</strong>
-        <div class="botoes-cartorio" style="margin: 8px 0;">
-          ${[6, 12, 13, 14, 15]
-            .map(
-              n => `
-            <button
-              data-id="${com.id}"
-              data-cartorio="${n}"
-              onclick="definirCartorio(this)"
-            >${n}</button>
-          `
-            )
-            .join('')}
-        </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn-copiar"
-                  onclick="navigator.clipboard.writeText('${com.nome_registrado}')">
-            📋 Copiar Nome
-          </button>
-          <button class="btn-copiar"
-                  onclick="focusComunicado('${com.id}')">
-            🔍 Ir para
-          </button>
-        </div>
-      `;
-      listaNomes.appendChild(nomeCard);
+        // limpa botões antigos deste card
+        nomeCard.querySelectorAll(".btn-cartorio")
+          .forEach(b => b.classList.remove("btn-cartorio-ativo"));
+
+        // ativa o clicado
+        btn.classList.add("btn-cartorio-ativo");
+
+        // card acinzentado para indicar preenchimento
+        nomeCard.classList.add("card-lateral-selecionado");
+
+        // aplica cartório no comunicado
+        definirCartorio(btn);
+
+        // foca na área principal
+        focusComunicado(btn.dataset.id);
+      });
     });
   }
 
-  adicionaSecaoLateral('Casamento', pendCasamento);
-  adicionaSecaoLateral('Nascimento', pendNascimento);
-
-  // liga o botão de exportar TXT (se existir)
-  const btnExport = document.getElementById('btnExportPendentes');
-  if (btnExport) {
-    btnExport.onclick = () =>
-      exportPendentesTxt(pendCasamento, pendNascimento);
+  // === Criar seções laterais (NADA SOME NUNCA) ===
+  if (cas.length) {
+    const t = document.createElement("div");
+    t.className = "lista-titulo";
+    t.textContent = "CASAMENTO";
+    listaNomes.appendChild(t);
+    cas.forEach(c => montarCardLateral(c));
   }
 
+  if (nasc.length) {
+    const t = document.createElement("div");
+    t.className = "lista-titulo";
+    t.textContent = "NASCIMENTO";
+    listaNomes.appendChild(t);
+    nasc.forEach(c => montarCardLateral(c));
+  }
 
-  comunicados.forEach((com, i) => {
-    const div = document.createElement('div');
-    div.className = 'comunicado';
-    div.dataset.id = com.id; // id AGORA é sempre string
-    if (completosSet.has(com.id)) div.classList.add('completed');
+  // ======================================================
+  // 🔵 2) ORDENAR COMUNICADOS NA TELA PRINCIPAL
+  // ======================================================
+
+  function extrairNumeroCartorio(com) {
+    if (!com.parte2) return null;
+    const m = com.parte2.match(/Cartório de origem:\s*(\d+)/i);
+    return m ? parseInt(m[1],10) : null;
+  }
+
+  comunicados.sort((a,b)=>{
+
+    const ca = extrairNumeroCartorio(a);
+    const cb = extrairNumeroCartorio(b);
+
+    const ha = ca !== null;
+    const hb = cb !== null;
+
+    // sem cartório primeiro
+    if (!ha && hb) return -1;
+    if (ha && !hb) return 1;
+
+    const na = (a.nome_registrado || "").toUpperCase();
+    const nb = (b.nome_registrado || "").toUpperCase();
+
+    if (!ha && !hb) return na.localeCompare(nb) || String(a.id).localeCompare(String(b.id));
+
+    if (ca !== cb) return ca - cb;
+
+    return na.localeCompare(nb) || String(a.id).localeCompare(String(b.id));
+  });
+
+  // ======================================================
+  // 🔵 3) GERAR CARDS DE COMUNICADOS (TELA DIREITA)
+  // ======================================================
+
+  comunicados.forEach((com,i)=>{
+
+    const div = document.createElement("div");
+    div.className = "comunicado";
+    div.dataset.id = com.id;
+
+    div.addEventListener("click", ()=>{
+      document.querySelectorAll(".comunicado-selecionado")
+        .forEach(el => el.classList.remove("comunicado-selecionado"));
+
+      div.classList.add("comunicado-selecionado");
+      currentComunicado = com;
+    });
+
+    const jaTem = /Cartório de origem:/i.test(com.parte2 || "");
+    if (jaTem) div.classList.add("comunicado-preenchido");
+
     div.style.borderLeftColor = cores[i % cores.length];
 
-    const num = document.createElement('span');
-    num.className = 'numero';
-    num.textContent = `#${i + 1}`;
-    const badge = document.createElement('span');
-    const preenchido = /Cartório de origem:/.test(com.parte2 || '');
-    badge.className = 'badge ' + (preenchido ? 'concluido' : 'pendente');
-    badge.textContent = preenchido ? 'Concluído' : 'Pendente';
-    num.after(badge);
+    const num = document.createElement("span");
+    num.className = "numero";
+    num.textContent = `#${i+1}`;
     div.appendChild(num);
 
-    const p1 = document.createElement('div');
-    p1.className = 'content-editable';
-    p1.contentEditable = 'false';
-    p1.innerHTML = `${com.parte1 || ''}${
-      escrevente ? ` Dou fé, ${escrevente}.` : ''
-    }`;
-    p1.addEventListener('blur', () => {
-      if (p1.contentEditable === 'true') {
-        p1.contentEditable = 'false';
-        persistSession();
-      }
-    });
+    const badge = document.createElement("span");
+    badge.className = "badge " + (jaTem ? "concluido" : "pendente");
+    badge.textContent = jaTem ? "Concluído" : "Pendente";
+    num.after(badge);
+
+  const p1 = document.createElement("div");
+    p1.className = "content-editable";
+    p1.contentEditable = "true";
+
+    let texto = com.parte1 || "";
+
+    // remove duplicações antigas de "Dou fé"
+    texto = texto.replace(
+      /(Dou fé,\s*Edjan Santos Melo\.)\s*(Dou fé,\s*Edjan Santos Melo\.)+/gi,
+      "$1"
+    );
+
+    // adiciona "Dou fé" só se ainda não existir
+    if (escrevente && !/dou fé,/i.test(texto)) {
+      texto += ` Dou fé, ${escrevente}.`;
+    }
+
+    p1.innerHTML = texto;
     div.appendChild(p1);
 
-    const p2 = document.createElement('div');
-    p2.className = 'parte2';
-    p2.textContent = com.parte2 || '';
+    p1.addEventListener("blur", () => {
+      com.parte1 = p1.innerHTML;
+      persistSession();
+    });
+
+
+
+    const p2 = document.createElement("div");
+    p2.className = "parte2";
+    p2.contentEditable = "true";                // 👈 E AQUI
+    p2.textContent = com.parte2 || "";
     div.appendChild(p2);
 
-    const grp = document.createElement('div');
-    grp.className = 'btn-group';
+      const obs = document.createElement("textarea");
+      obs.className = "observacoes";
+      obs.placeholder = "Observações…";
+      obs.value = com.observacoes || "";
 
-    const btE = document.createElement('button');
-    btE.textContent = '📝 Editar';
-    btE.onclick = () => {
-      const ed = p1.contentEditable === 'true';
-      p1.contentEditable = ed ? 'false' : 'true';
-      if (!ed) p1.focus();
-      else persistSession();
-    };
-    grp.appendChild(btE);
-
-    const btC = document.createElement('button');
-    btC.textContent = completosSet.has(com.id)
-      ? '🔄 Desmarcar'
-      : '✅ Concluir';
-    btC.onclick = () => toggleConcluido(div, com.id, btC);
-    grp.appendChild(btC);
-
-    if (com.erros?.includes('Cartório de origem ausente')) {
-      const inp = document.createElement('input');
-      inp.type = 'text';
-      inp.className = 'input-cartorio';
-      inp.placeholder = 'Ex: 13º Ofício';
-
-      const btA = document.createElement('button');
-      btA.textContent = '➕ Cartório';
-      btA.onclick = () => {
-        adicionarCartorio(btA);
+      obs.addEventListener("input", () => {
+        com.observacoes = obs.value;
         persistSession();
-      };
-
-      const btCp = document.createElement('button');
-      btCp.textContent = '📋 Nome';
-      btCp.onclick = e => copiarNome(e, com.nome_registrado);
-
-      inp.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          adicionarCartorio(btA);
-        }
       });
 
-      grp.append(inp, btA, btCp);
-    }
-
-    div.appendChild(grp);
-
-    if (com.erros?.length) {
-      const erdiv = document.createElement('div');
-      erdiv.className = 'erros';
-      erdiv.textContent = '⚠️ ' + com.erros.join(', ');
-      div.appendChild(erdiv);
-    }
+      div.appendChild(obs);
 
     container.appendChild(div);
   });
 
-  if (erros && erros.length) {
-    resumoEl.innerHTML = `
-      <div class="resumo-erros">
-        <strong>${erros.length} erro(s):</strong><br>
-        ${erros.map(e => `#${e.id}: ${e.erros.join(', ')}`).join('<br>')}
-      </div>
-    `;
-  }
-
   filtrar();
 }
+
+
 
 // ===============================
 // 🔧 Utilitários de cartório / cópia
@@ -275,31 +297,53 @@ function definirCartorio(botao) {
   const id = botao.dataset.id;
   const cartorio = botao.dataset.cartorio;
 
-  const comunicado = document.querySelector(
-    `.comunicado[data-id="${id}"]`
-  );
-  if (!comunicado) return;
+  // card do comunicado principal
+  const card = document.querySelector(`.comunicado[data-id="${id}"]`);
+  if (!card) return;
 
-  const parte2 = comunicado.querySelector('.parte2');
+  const parte2 = card.querySelector('.parte2');
   if (!parte2) return;
 
-  if (!/Cartório de origem:/.test(parte2.textContent)) {
+  // ==========================
+  // 1) APLICAR CARTÓRIO NO TEXTO DO COMUNICADO
+  // ==========================
+  if (!/Cartório de origem:/i.test(parte2.textContent)) {
     parte2.textContent += `\nCartório de origem: ${cartorio}º Ofício`;
   } else {
     parte2.textContent = parte2.textContent.replace(
-      /Cartório de origem:[^\n]*/,
+      /Cartório de origem:[^\n]*/i,
       `Cartório de origem: ${cartorio}º Ofício`
     );
   }
 
-  const containerBotoes = botao.parentElement;
-  containerBotoes
-    .querySelectorAll('button')
-    .forEach(btn => btn.classList.remove('selected-cartorio'));
-  botao.classList.add('selected-cartorio');
+  // ==========================
+  // 2) MARCAR O COMUNICADO COMO PREENCHIDO
+  // ==========================
+  card.classList.add("comunicado-preenchido");
 
+  // ==========================
+  // 3) NÃO ALTERAR NENHUM BOTÃO DA LATERAL
+  //    (removido!)
+  // ==========================
+
+  // ==========================
+  // 4) SALVAR A SESSÃO
+  // ==========================
   persistSession();
+
+  // ==========================
+  // 5) IR PARA O PRÓXIMO AUTOMATICAMENTE
+  // ==========================
+  const next = card.nextElementSibling;
+
+  if (next && next.classList.contains("comunicado")) {
+    next.scrollIntoView({ behavior: "smooth", block: "center" });
+    next.click();
+  }
 }
+
+
+
 
 // ===============================
 // 📌 Inferir tipo do comunicado
@@ -341,10 +385,41 @@ function splitPais(paisRaw) {
 
 
 // ===============================
-// ⬇ Exportar TXT com pendentes
+// ⬇ Exportar TXT com pendentes (ordenado e limpo)
 // ===============================
 function exportPendentesTxt(pendCasamento, pendNascimento) {
   const linhas = [];
+
+  // 🔹 Ordenar alfabeticamente por nome_registrado
+  pendCasamento = [...pendCasamento].sort((a, b) =>
+    (a.nome_registrado || '').localeCompare(b.nome_registrado || '', 'pt-BR')
+  );
+
+  pendNascimento = [...pendNascimento].sort((a, b) =>
+    (a.nome_registrado || '').localeCompare(b.nome_registrado || '', 'pt-BR')
+  );
+
+  // 🔹 Limpa lixo que vem grudado no campo "pais"
+  function limparCampoPais(str) {
+    if (!str) return '';
+
+    let s = String(str);
+
+    // corta tudo a partir de OBSERVAÇÕES / Ilmo / OFICIAL
+    s = s.split(/OBSERVAÇÕES:/i)[0];
+    s = s.split(/Observações:/i)[0];
+    s = s.split(/Ilmo\(a\)/i)[0];
+    s = s.split(/OFICIAL\(a\)/i)[0];
+
+    // normaliza espaços
+    s = s.replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+
+    // se ainda sobrou coisa tipo "e , nascida aos .", descarta
+    if (/nascid/i.test(s)) return '';
+
+    return s;
+  }
 
   function adicionarSecao(titulo, lista) {
     if (!lista.length) return;
@@ -352,16 +427,21 @@ function exportPendentesTxt(pendCasamento, pendNascimento) {
     linhas.push(`=== ${titulo} ===`);
 
     lista.forEach(com => {
-      const { p1, p2 } = splitPais(com.pais || '');
+      // pais bruto pode vir com OBSERVAÇÕES, Ilmo, etc.
+      let paisRaw = com.pais || '';
+      const { p1, p2 } = splitPais(paisRaw);
+
+      const pai1 = limparCampoPais(p1);
+      const pai2 = limparCampoPais(p2);
 
       linhas.push(`R: ${com.nome_registrado || ''}`);
 
-      if (p1) {
-        linhas.push(`P: ${p1}`);
+      if (pai1) {
+        linhas.push(`P: ${pai1}`);
       }
 
-      if (p2) {
-        linhas.push(`P2: ${p2}`);
+      if (pai2) {
+        linhas.push(`P2: ${pai2}`);
       }
 
       const L = com.livro_origem || '';
@@ -400,6 +480,8 @@ function exportPendentesTxt(pendCasamento, pendNascimento) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+
 
 
 
