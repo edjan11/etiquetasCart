@@ -1,16 +1,28 @@
 // ===============================
 // 🔵 Renderização dos comunicados
 // ===============================
-function renderComunicados(comunicados, erros, completosSet) {
-  container.innerHTML = '';
-  listaNomes.innerHTML = '';
-  resumoEl.innerHTML = '';
+function renderComunicados(comunicados, erros, completosSet, problemas = null, aiAtivo = false) {
+  try {
+    console.log('renderComunicados iniciado', { 
+      total: comunicados?.length, 
+      erros: erros?.length,
+      aiAtivo
+    });
+    
+    container.innerHTML = '';
+    listaNomes.innerHTML = '';
+    resumoEl.innerHTML = '';
 
-  // ======================================================
-  // 🔵 1) LATERAL — SEMPRE MOSTRAR TODOS COM NOME
-  // ======================================================
+    // Mostrar painel de alertas se houver problemas
+    if (problemas) {
+      mostrarAlertasIA(problemas, aiAtivo);
+    }
 
-  const todosLateral = comunicados.filter(c => c.nome_registrado);
+    // ======================================================
+    // 🔵 1) LATERAL — SEMPRE MOSTRAR TODOS COM NOME
+    // ======================================================
+
+    const todosLateral = comunicados.filter(c => c.nome_registrado);
 
   const nasc = [];
   const cas = [];
@@ -153,6 +165,22 @@ function renderComunicados(comunicados, erros, completosSet) {
     const jaTem = /Cartório de origem:/i.test(com.parte2 || "");
     if (jaTem) div.classList.add("comunicado-preenchido");
 
+    // Validar se tem livro/folha/termo (OBRIGATÓRIO)
+    const textoParte1 = com.parte1 || "";
+    const textoParte2 = com.parte2 || "";
+    
+    // Detecta padrões de dados faltando
+    const temDadosIncompletos = 
+      /livro [AB]?\s*número\s*,\s*folhas\s*,\s*termo/i.test(textoParte1) ||
+      /livro\s*\[---\]/i.test(textoParte2) ||
+      /folhas\s*\[---\]/i.test(textoParte2) ||
+      /termo\s*\[---\]/i.test(textoParte2) ||
+      /Livro \? nº/i.test(textoParte2);
+    
+    if (temDadosIncompletos) {
+      div.classList.add("comunicado-invalido");
+    }
+
     div.style.borderLeftColor = cores[i % cores.length];
 
     const num = document.createElement("span");
@@ -165,7 +193,16 @@ function renderComunicados(comunicados, erros, completosSet) {
     badge.textContent = jaTem ? "Concluído" : "Pendente";
     num.after(badge);
 
-  const p1 = document.createElement("div");
+    // Badge de ERRO para dados incompletos
+    if (temDadosIncompletos) {
+      const badgeErro = document.createElement("span");
+      badgeErro.className = "badge badge-erro";
+      badgeErro.textContent = "⚠️ DADOS INCOMPLETOS";
+      badgeErro.title = "Livro, Folha ou Termo ausentes - verificar nas OBSERVAÇÕES";
+      badge.after(badgeErro);
+    }
+
+    const p1 = document.createElement("div");
     p1.className = "content-editable";
     p1.contentEditable = "true";
 
@@ -182,21 +219,28 @@ function renderComunicados(comunicados, erros, completosSet) {
       texto += ` Dou fé, ${escrevente}.`;
     }
 
-    p1.innerHTML = texto;
+    p1.textContent = texto;
     div.appendChild(p1);
 
     p1.addEventListener("blur", () => {
-      com.parte1 = p1.innerHTML;
+      com.parte1 = p1.textContent;
       persistSession();
     });
 
 
 
+    // ===== PARTE 2 - EXIBIÇÃO LIMPA =====
     const p2 = document.createElement("div");
     p2.className = "parte2";
-    p2.contentEditable = "true";                // 👈 E AQUI
+    p2.contentEditable = "true";
     p2.textContent = com.parte2 || "";
+    
     div.appendChild(p2);
+    
+    p2.addEventListener("blur", () => {
+      com.parte2 = p2.textContent;
+      persistSession();
+    });
 
       const obs = document.createElement("textarea");
       obs.className = "observacoes";
@@ -214,6 +258,12 @@ function renderComunicados(comunicados, erros, completosSet) {
   });
 
   filtrar();
+  console.log('renderComunicados concluído com sucesso');
+  
+  } catch (error) {
+    console.error('ERRO em renderComunicados:', error);
+    alert('Erro ao renderizar comunicados: ' + error.message);
+  }
 }
 
 
@@ -578,4 +628,64 @@ function deduplicarENormalizar(listaBruta) {
 
   // ordenar alfabeticamente
   return limpos.sort((a, b) => a.localeCompare(b, 'pt-BR'));
+}
+
+// ===============================
+// 🤖 Painel de Alertas IA
+// ===============================
+function mostrarAlertasIA(problemas, aiAtivo) {
+  const painel = document.getElementById('painelAlertasIA');
+  const statusIA = document.getElementById('statusIA');
+  const listaAlertas = document.getElementById('listaAlertasIA');
+
+  if (!painel || !statusIA || !listaAlertas) return;
+
+  // Status do Ollama
+  if (aiAtivo) {
+    statusIA.innerHTML = '✅ <strong>Ollama ativo</strong> - Revisão automática habilitada';
+    statusIA.style.color = '#155724';
+  } else {
+    statusIA.innerHTML = '❌ <strong>Ollama inativo</strong> - Instale: <a href="https://ollama.com/download" target="_blank">ollama.com/download</a> → rode: <code>ollama pull llama3.2:1b</code>';
+    statusIA.style.color = '#721c24';
+  }
+
+  let html = '';
+
+  // Sem cartório
+  if (problemas.semCartorio.length > 0) {
+    html += '<div style="margin-bottom: 15px;"><strong>🏛️ Sem Cartório de Origem:</strong><ul style="margin: 5px 0 0 20px;">';
+    problemas.semCartorio.forEach(item => {
+      html += `<li><strong>#${item.numero}</strong> ${item.nome}`;
+      if (item.sugestao) {
+        html += ` - <span style="color: #007bff;">Possível: ${item.sugestao}</span>`;
+      }
+      html += '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // Dados incompletos
+  if (problemas.dadosIncompletos.length > 0) {
+    html += '<div style="margin-bottom: 15px;"><strong>📄 Dados Incompletos:</strong><ul style="margin: 5px 0 0 20px;">';
+    problemas.dadosIncompletos.forEach(item => {
+      html += `<li><strong>#${item.numero}</strong> ${item.nome} - Faltando: ${item.faltando.join(', ')}</li>`;
+    });
+    html += '</ul></div>';
+  }
+
+  // Possíveis erros de OCR
+  if (problemas.possiveisErros.length > 0) {
+    html += '<div><strong>⚠️ Possíveis Erros de OCR:</strong><ul style="margin: 5px 0 0 20px;">';
+    problemas.possiveisErros.forEach(item => {
+      html += `<li><strong>#${item.numero}</strong> ${item.campo}: "${item.valor}" - ${item.motivo}</li>`;
+    });
+    html += '</ul></div>';
+  }
+
+  if (html) {
+    listaAlertas.innerHTML = html;
+    painel.style.display = 'block';
+  } else {
+    painel.style.display = 'none';
+  }
 }

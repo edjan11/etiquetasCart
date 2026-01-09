@@ -3,23 +3,50 @@ const PDFDocument = require("pdfkit");
 function limparTexto(texto) {
   if (!texto) return "";
 
-  const textoLimpo = String(texto)
-    .replace(/\r\n/g, "\n")          // normaliza CRLF -> LF
-    .replace(/[ \t]{2,}/g, " ")      // compacta APENAS espaços e tabs (não mexe em \n)
-    .replace(/([a-zà-ú])([A-ZÀ-Ú])/g, "$1 $2") // separa grudados
-    .replace(/\s([.,;:!?])/g, "$1")           // tira espaço antes de pontuação
-    .replace(/([.,;:!?])(?=\S)/g, "$1 ")      // adiciona espaço após pontuação
+  let textoLimpo = String(texto)
+    // Remove emojis/ícones (causa problemas no PDF)
+    .replace(/[\u{1F300}-\u{1F9FF}]/gu, "")
+    .replace(/[\u{2600}-\u{26FF}]/gu, "")
+    .replace(/[\u{2700}-\u{27BF}]/gu, "")
+    // Remove TODAS as tags HTML
+    .replace(/<[^>]+>/g, "")
+    // Remove atributos HTML (style, align, etc)
+    .replace(/style\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/align\s*=\s*["'][^"']*["']/gi, "")
+    .replace(/class\s*=\s*["'][^"']*["']/gi, "")
+    // Remove entidades HTML
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#\d+;/g, "")
+    .replace(/&\w+;/g, "")
+    // Normaliza quebras de linha Windows
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    // Compacta múltiplos espaços e tabs (PRESERVANDO \n)
+    .replace(/[ \t]+/g, " ")
+    // Remove espaços no início e fim de cada linha
+    .replace(/^[ \t]+|[ \t]+$/gm, "")
+    // Separa palavras grudadas
+    .replace(/([a-zà-ú])([A-ZÀ-Ú])/g, "$1 $2")
+    // Arruma pontuação
+    .replace(/\s([.,;:!?])/g, "$1")
+    .replace(/([.,;:!?])(?=\S)/g, "$1 ")
     .trim();
 
-  // separação automática em dois parágrafos
-  const indexRegistro = textoLimpo.search(
-    /Nascimento registrado|Registro lavrado|lavrado às/i,
-  );
+  // separação automática em dois parágrafos se ainda não estiver dividido
+  if (!textoLimpo.includes("\n\n")) {
+    const indexRegistro = textoLimpo.search(
+      /Nascimento registrado|Registro lavrado|Registro anterior|lavrado às/i,
+    );
 
-  if (indexRegistro > -1) {
-    const comunicado = textoLimpo.slice(0, indexRegistro).trim();
-    const registro = textoLimpo.slice(indexRegistro).trim();
-    return `${comunicado}\n\n${registro}`;
+    if (indexRegistro > -1) {
+      const comunicado = textoLimpo.slice(0, indexRegistro).trim();
+      const registro = textoLimpo.slice(indexRegistro).trim();
+      return `${comunicado}\n\n${registro}`;
+    }
   }
 
   return textoLimpo;
@@ -49,33 +76,49 @@ function gerarEtiquetasPDF(etiquetas = []) {
       const texto = limparTexto(textoBruto);
       const larguraUtil = largura - 2 * padding;
 
-      // Título centralizado
+      // Título em negrito
       doc
         .font("Helvetica-Bold")
-        .fontSize(9)
-        .text("Cartório do 9º Ofício de Aracaju/SE", padding, padding +8, {
+        .fontSize(7)
+        .text("Cartório do 9º Ofício de Aracaju/SE", padding, padding, {
           width: larguraUtil,
           align: "center",
         });
 
-      // Texto corrido justificado
-      doc.moveDown(0.5);
-      doc.font("Helvetica").fontSize(7.5);
+      doc.moveDown(0.3);
 
+      // Dividir em parágrafos
       const paragrafos = texto.includes("\n\n")
         ? texto.split("\n\n")
-        : texto.split(/(?=Nascimento registrado|Registro lavrado|lavrado às)/i);
+        : [texto];
 
-      paragrafos.forEach((par, i) => {
-        if (i > 0) doc.moveDown(0.5); // espaço entre parágrafos
-        doc.text(par.trim(), {
-          width: larguraUtil,
-          align: "justify",
-          lineGap: 0,
-          indent: 0,
-          paragraphGap: 5,
-        });
+      // Primeiro parágrafo: texto justificado normal (parte1)
+      doc.font("Helvetica").fontSize(6.5);
+      doc.text(paragrafos[0].trim(), {
+        width: larguraUtil,
+        align: "justify",
+        lineGap: 0,
       });
+
+      // Parte2: dados estruturados (SEMPRE renderizar tudo)
+      if (paragrafos.length > 1) {
+        doc.moveDown(0.5);
+        doc.fontSize(6);
+        
+        // Renderizar todos os parágrafos restantes (parte2 completa)
+        for (let i = 1; i < paragrafos.length; i++) {
+          const bloco = paragrafos[i].trim();
+          if (!bloco) continue;
+          
+          if (i > 1) doc.moveDown(0.3);
+          
+          doc.text(bloco, {
+            width: larguraUtil,
+            align: "left",
+            lineGap: 0.5,
+          });
+        }
+      }
     });
 
     doc.end();

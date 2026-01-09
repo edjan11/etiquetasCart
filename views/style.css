@@ -299,6 +299,26 @@ button:active {
   background: rgba(74, 222, 128, 0.9);
 }
 
+.badge.badge-erro {
+  background: var(--danger);
+  color: #fff;
+  font-weight: 700;
+  animation: pulse 2s infinite;
+  margin-left: 8px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Comunicado com dados inválidos */
+.comunicado-invalido {
+  border: 2px solid var(--danger) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
 /* Observações — padrão do tema */
 .observacoes {
   width: 100%;
@@ -360,6 +380,86 @@ button:active {
   background: rgba(30, 64, 175, 0.2);
   border-color: #60a5fa;
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.7);
+}
+
+/* parte 2 container */
+.parte2-container {
+  margin-bottom: 10px;
+}
+
+.parte2-header {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.info-destaque {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.info-destaque:last-child {
+  margin-bottom: 0;
+}
+
+.info-destaque .label {
+  font-weight: 600;
+  color: var(--primary);
+  min-width: fit-content;
+}
+
+.info-destaque .valor {
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
+}
+
+/* parte 2 container */
+.parte2-container {
+  margin-bottom: 10px;
+}
+
+.parte2-header {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.info-destaque {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.info-destaque:last-child {
+  margin-bottom: 0;
+}
+
+.info-destaque .label {
+  font-weight: 600;
+  color: var(--primary);
+  min-width: fit-content;
+}
+
+.info-destaque .valor {
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Courier New', monospace;
 }
 
 /* parte 2 */

@@ -3,6 +3,7 @@
 // ===============================
 
 async function loadSession(id) {
+  console.log('loadSession iniciado, id:', id);
   clearUI();
 
   const sess = await apiLoadSession(id);
@@ -11,13 +12,26 @@ async function loadSession(id) {
     return;
   }
 
+  console.log('Sessão carregada:', sess);
+
   currentSessionId = id;
 
   const rawComunicados = sess.payload.comunicados || [];
-  const comunicados = rawComunicados.map((c, idx) => ({
-    ...c,
-    id: c.id ?? String(idx + 1),
-  }));
+  const comunicados = rawComunicados.map((c, idx) => {
+    // Compatibilidade: converter HTML antigo para texto puro
+    let parte1 = c.parte1 || '';
+    if (/<[^>]+>/.test(parte1)) {
+      const temp = document.createElement('div');
+      temp.innerHTML = parte1;
+      parte1 = temp.textContent || temp.innerText || '';
+    }
+    
+    return {
+      ...c,
+      id: c.id ?? String(idx + 1),
+      parte1: parte1
+    };
+  });
 
   const erros = sess.payload.erros || [];
   const completos = sess.payload.completos || [];
@@ -26,6 +40,8 @@ async function loadSession(id) {
   const completosSet = new Set(completos.map(x => String(x)));
 
   renderComunicados(comunicados, erros, completosSet);
+
+  console.log('renderComunicados chamado com', comunicados.length, 'comunicados');
 
   // sobrescreve no payload em memória com ids normalizados
   sess.payload.comunicados = comunicados;
@@ -76,10 +92,11 @@ async function persistSession() {
     const div = container.querySelector(`[data-id="${orig.id}"]`);
     if (!div) return orig;
 
-    const newParte1 =
-      div.querySelector('.content-editable')?.innerHTML || orig.parte1;
-    const newParte2 =
-      div.querySelector('.parte2')?.innerText.trim() || orig.parte2;
+    const p1El = div.querySelector('.content-editable');
+    const p2El = div.querySelector('.parte2');
+    
+    const newParte1 = p1El ? p1El.textContent : orig.parte1;
+    const newParte2 = p2El ? p2El.textContent.trim() : orig.parte2;
 
     const newErros = (orig.erros || []).filter(err => {
       if (err === 'Cartório de origem ausente')

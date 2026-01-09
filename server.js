@@ -5,10 +5,13 @@ const express = require("express");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const pdf = require("pdf-parse");
 const { processarTexto } = require("./src/parser/processarTexto");
 const gerarEtiqueta = require("./src/exporter/gerarEtiquetaCasamento");
 const { gerarEtiquetasPDF } = require("./src/exporter/etiquetas");
+const { revisarTexto, analisarProblemas, checkOllama } = require("./src/ai/revisor");
+const { converterParaJSON, converterParaCSV } = require("./src/exporter/exportarJSON");
 const Database = require("better-sqlite3");
 
 const dbPath = path.join(__dirname, "comunicados.db");
@@ -43,15 +46,57 @@ app.post("/upload", upload.single("pdf"), async (req, res) => {
     fs.unlinkSync(req.file.path);
 
     const { resultados, relatorio } = processarTexto(text);
+    
+    // 🚫 FILTRAR REJEITADOS (não devem aparecer em lugar nenhum)
+    const resultadosFiltrados = resultados.filter(c => !c.rejeitado);
+    const rejeitados = resultados.filter(c => c.rejeitado);
+    
+    if (rejeitados.length > 0) {
+      console.log(`⚠️ ${rejeitados.length} comunicado(s) REJEITADO(s) foram filtrados:`);
+      rejeitados.forEach(r => {
+        console.log(`   - ${r.nome_registrado || 'Sem nome'}: ${r.motivoRejeicao || 'Sem motivo'}`);
+      });
+    }
 
-    const comunicadosComEtiqueta = resultados.map((c) => ({
+    // ⚡ MODO TESTE: processar apenas 100 comunicados (mude para 0 para processar todos)
+    const LIMITE_TESTE = 100;
+    const resultadosLimitados = LIMITE_TESTE > 0 ? resultadosFiltrados.slice(0, LIMITE_TESTE) : resultadosFiltrados;
+
+    // 🤖 IA minimalista: detecta cartório e corrige erros básicos
+    // 100 comunicados ≈ 5-8 minutos
+    const USAR_IA = true; 
+    const comunicadosRevisados = [];
+    const batchSize = 3; // 3 simultâneos = mais rápido
+    
+    if (USAR_IA) {
+      for (let i = 0; i < resultadosLimitados.length; i += batchSize) {
+        const batch = resultadosLimitados.slice(i, i + batchSize);
+        const revisados = await Promise.all(
+          batch.map(comunicado => revisarTexto(comunicado))
+        );
+        comunicadosRevisados.push(...revisados);
+        
+        // Log de progresso
+        console.log(`🤖 IA processou ${Math.min(i + batchSize, resultadosLimitados.length)}/${resultadosLimitados.length} comunicados`);
+      }
+    } else {
+      console.log('⚠️ IA desabilitada - processando sem revisão');
+      comunicadosRevisados.push(...resultadosLimitados);
+    }
+
+    const comunicadosComEtiqueta = comunicadosRevisados.map((c) => ({
       ...c,
       ...gerarEtiqueta(c),
     }));
 
+    // Analisar problemas gerais
+    const problemas = analisarProblemas(comunicadosComEtiqueta);
+
     res.json({
       comunicados: comunicadosComEtiqueta,
       erros: relatorio,
+      problemas: problemas,
+      aiAtivo: await checkOllama()
     });
   } catch (err) {
     console.error(err);
@@ -72,8 +117,23 @@ app.post("/gerar-etiquetas", async (req, res) => {
     const textos = comunicados.map((c) => c.texto);
     const buffer = await gerarEtiquetasPDF(textos);
 
+    const exportDir = path.join(__dirname, "exports");
+    await fs.promises.mkdir(exportDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const uniqueId = crypto.randomUUID
+      ? crypto.randomUUID()
+      : crypto.randomBytes(16).toString("hex");
+    const fileName = `etiquetas-${timestamp}-${uniqueId}.pdf`;
+    const filePath = path.join(exportDir, fileName);
+
+    await fs.promises.writeFile(filePath, buffer);
+
+    const relativePath = path.relative(__dirname, filePath);
+
     res.setHeader("Content-Disposition", "attachment; filename=etiquetas.pdf");
     res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("X-Saved-File", relativePath.replace(/\\/g, "/"));
     res.send(buffer);
 
   } catch (err) {
@@ -290,6 +350,50 @@ app.post("/session/:id", (req, res) => {
       body: req.body,
       dbPath,
     });
+  }
+});
+
+
+
+// ===============================
+// 📌 EXPORTAR JSON/CSV
+// ===============================
+app.post("/exportar-json", express.json(), (req, res) => {
+  try {
+    const { comunicados } = req.body;
+    
+    if (!comunicados || !Array.isArray(comunicados)) {
+      return res.status(400).json({ erro: "comunicados inválidos" });
+    }
+    
+    const jsonData = converterParaJSON(comunicados);
+    
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Content-Disposition", `attachment; filename="comunicados_${Date.now()}.json"`);
+    res.send(JSON.stringify(jsonData, null, 2));
+  } catch (error) {
+    console.error("❌ Erro ao exportar JSON:", error);
+    res.status(500).json({ erro: error.message });
+  }
+});
+
+app.post("/exportar-csv", express.json(), (req, res) => {
+  try {
+    const { comunicados } = req.body;
+    
+    if (!comunicados || !Array.isArray(comunicados)) {
+      return res.status(400).json({ erro: "comunicados inválidos" });
+    }
+    
+    const csvData = converterParaCSV(comunicados);
+    
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="comunicados_${Date.now()}.csv"`);
+    // BOM para Excel reconhecer UTF-8
+    res.send("\uFEFF" + csvData);
+  } catch (error) {
+    console.error("❌ Erro ao exportar CSV:", error);
+    res.status(500).json({ erro: error.message });
   }
 });
 

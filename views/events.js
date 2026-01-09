@@ -4,20 +4,23 @@
 
 form.addEventListener('submit', async e => {
   e.preventDefault();
+  console.log('Form submit iniciado');
   const sid = sessionSelect.value;
 
   if (sid && !fileInput.files.length) {
+    console.log('Carregando sessão existente:', sid);
     loadSession(sid);
     return;
   }
 
+  console.log('Fazendo upload de PDF');
   const res = await fetch('/upload', {
     method: 'POST',
     body: new FormData(form),
   });
   if (!res.ok) return alert('Erro ao enviar PDF.');
 
-  const { comunicados, erros } = await res.json();
+  const { comunicados, erros, problemas, aiAtivo } = await res.json();
 
   // garante id estável para cada comunicado
   const comunicadosComId = (comunicados || []).map((c, idx) => ({
@@ -26,7 +29,7 @@ form.addEventListener('submit', async e => {
   }));
 
   const completos = new Set();
-  renderComunicados(comunicadosComId, erros, completos);
+  renderComunicados(comunicadosComId, erros, completos, problemas, aiAtivo);
 
   const label = `${fileInput.files[0].name} (${new Date().toLocaleDateString()})`;
   const newId = Date.now().toString();
@@ -97,12 +100,17 @@ exportarPDFBtn.addEventListener('click', async () => {
     div => div.style.display !== 'none'
   );
 
-  const comunicados = cards.map(div => ({
-    texto: `${div.querySelector('.content-editable')?.innerText.trim() ||
-      ''}\n\n${div
-      .querySelector('.parte2')
-      ?.innerText.trim() || ''}`,
-  }));
+  const comunicados = cards.map(div => {
+    const parte1El = div.querySelector('.content-editable');
+    const parte2El = div.querySelector('.parte2');
+    
+    const parte1 = parte1El ? parte1El.textContent.trim() : '';
+    const parte2 = parte2El ? parte2El.textContent.trim() : '';
+    
+    return {
+      texto: parte1 && parte2 ? `${parte1}\n\n${parte2}` : (parte1 || parte2)
+    };
+  });
 
   try {
     const response = await fetch('/gerar-etiquetas', {
@@ -116,9 +124,16 @@ exportarPDFBtn.addEventListener('click', async () => {
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
 
+    // Nome do arquivo: etiquetas + data + hora + quantidade
+    const agora = new Date();
+    const data = agora.toISOString().slice(0, 10).replace(/-/g, '');
+    const hora = agora.toTimeString().slice(0, 5).replace(/:/g, '');
+    const qtd = comunicados.length;
+    const nomeArquivo = `etiquetas-${data}-${hora}-${qtd}itens.pdf`;
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'etiquetas.pdf';
+    a.download = nomeArquivo;
     a.click();
 
     URL.revokeObjectURL(url);
@@ -224,9 +239,15 @@ function gerarEtiquetas() {
   );
 
   const comunicados = cards.map(div => {
-    const parte1 = div.querySelector('.content-editable')?.innerText || '';
-    const parte2 = div.querySelector('.parte2')?.innerText || '';
-    return (parte1 + '\n\n' + parte2).trim();
+    const parte1El = div.querySelector('.content-editable');
+    const parte2El = div.querySelector('.parte2');
+    
+    const parte1 = parte1El ? parte1El.textContent.trim() : '';
+    const parte2 = parte2El ? parte2El.textContent.trim() : '';
+    
+    return {
+      texto: parte1 && parte2 ? `${parte1}\n\n${parte2}` : (parte1 || parte2)
+    };
   });
 
   fetch('/gerar-etiquetas', {
@@ -240,9 +261,17 @@ function gerarEtiquetas() {
     })
     .then(blob => {
       const url = URL.createObjectURL(blob);
+      
+      // Nome do arquivo: etiquetas + data + hora + quantidade
+      const agora = new Date();
+      const data = agora.toISOString().slice(0, 10).replace(/-/g, '');
+      const hora = agora.toTimeString().slice(0, 5).replace(/:/g, '');
+      const qtd = comunicados.length;
+      const nomeArquivo = `etiquetas-${data}-${hora}-${qtd}itens.pdf`;
+      
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'etiquetas.pdf';
+      a.download = nomeArquivo;
       a.click();
     })
     .catch(() => alert('Erro ao gerar etiquetas.'));
@@ -291,6 +320,85 @@ exportarRelatorioTxtBtn.addEventListener('click', async () => {
 
   // gera TXT no teu formato atual (R:, P:, P2:, L/F/T etc.)
   exportPendentesTxt(pendCasamento, pendNascimento);
+});
+
+// ===============================
+// 📊 EXPORTAR JSON/CSV
+// ===============================
+document.getElementById('exportarJSON')?.addEventListener('click', async () => {
+  if (!currentSessionId) {
+    alert("Nenhuma sessão carregada.");
+    return;
+  }
+
+  const sess = await apiLoadSession(currentSessionId);
+  const comunicados = sess?.payload?.comunicados || [];
+  
+  if (!comunicados.length) {
+    alert("Nenhum comunicado para exportar.");
+    return;
+  }
+
+  try {
+    const res = await fetch('/exportar-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comunicados })
+    });
+    
+    if (!res.ok) throw new Error('Erro ao exportar JSON');
+    
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comunicados_${Date.now()}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    alert(`JSON exportado com sucesso! ${comunicados.length} comunicados.`);
+  } catch (error) {
+    console.error('Erro ao exportar JSON:', error);
+    alert('Erro ao exportar JSON: ' + error.message);
+  }
+});
+
+document.getElementById('exportarCSV')?.addEventListener('click', async () => {
+  if (!currentSessionId) {
+    alert("Nenhuma sessão carregada.");
+    return;
+  }
+
+  const sess = await apiLoadSession(currentSessionId);
+  const comunicados = sess?.payload?.comunicados || [];
+  
+  if (!comunicados.length) {
+    alert("Nenhum comunicado para exportar.");
+    return;
+  }
+
+  try {
+    const res = await fetch('/exportar-csv', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comunicados })
+    });
+    
+    if (!res.ok) throw new Error('Erro ao exportar CSV');
+    
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `comunicados_${Date.now()}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    
+    alert(`CSV exportado com sucesso! ${comunicados.length} comunicados.`);
+  } catch (error) {
+    console.error('Erro ao exportar CSV:', error);
+    alert('Erro ao exportar CSV: ' + error.message);
+  }
 });
 
 

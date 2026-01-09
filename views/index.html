@@ -32,6 +32,8 @@
         <button type="submit">Processar Etiquetas</button>
         <button type="button" id="exportarPDF">🏷️ Exportar PDF para impressão</button>
         <button type="button" id="exportarRelatorioTxt">📄 Relatório TXT</button>
+        <button type="button" id="exportarJSON">💾 Exportar JSON</button>
+        <button type="button" id="exportarCSV">📊 Exportar CSV</button>
       </form>
     </div>
 
@@ -64,6 +66,13 @@
     <div id="ferramentas">
       <input id="buscaComunicados" placeholder="🔍 Buscar..." />
       <button id="filtroPendentes">Mostrar só pendentes</button>
+    </div>
+
+    <!-- Painel de Alertas IA -->
+    <div id="painelAlertasIA" style="display:none; margin: 20px 0; padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 6px; color: #856404;">
+      <h3 style="margin: 0 0 10px 0; font-size: 16px; color: #856404;">⚠️ Alertas Automáticos</h3>
+      <div id="statusIA" style="margin-bottom: 10px; font-size: 13px; color: #856404;"></div>
+      <div id="listaAlertasIA" style="color: #856404;"></div>
     </div>
 
     <!-- Resultados e Erros -->
