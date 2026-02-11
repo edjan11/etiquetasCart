@@ -22,6 +22,7 @@
           type="file"
           name="pdf"
           accept="application/pdf"
+          multiple
           required
         />
         <select id="escreventeSelect">
@@ -33,8 +34,20 @@
         <button type="button" id="exportarPDF">🏷️ Exportar PDF para impressão</button>
         <button type="button" id="exportarRelatorioTxt">📄 Relatório TXT</button>
         <button type="button" id="exportarJSON">💾 Exportar JSON</button>
-        <button type="button" id="exportarCSV">📊 Exportar CSV</button>
       </form>
+    </div>
+
+    <div id="processingStatus" aria-live="polite">
+      <div class="processing-header">
+        <span id="aiRuntimeBadge" class="ai-badge ai-unknown">IA: verificando...</span>
+        <span id="processingText">Aguardando processamento</span>
+      </div>
+      <div class="processing-meta">
+        <span id="processingEta">Estimativa: --</span>
+      </div>
+      <div class="processing-bar">
+        <div id="processingBarFill"></div>
+      </div>
     </div>
 
   <div id="controls-load">

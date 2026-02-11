@@ -1,5 +1,41 @@
 const fetch = require('node-fetch');
 const { promptDetectarCartorio } = require('./prompts');
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL || 'qwen2.5:3b-instruct-q4_K_M';
+const OFICIOS_VALIDOS = new Set([6, 12, 13, 14, 15, 24, 25, 26, 29]);
+
+function normalizarCartorio(valor) {
+  if (!valor) return null;
+  const m = String(valor).match(/\b(\d{1,2})\b/);
+  if (!m) return null;
+  const num = Number(m[1]);
+  if (!OFICIOS_VALIDOS.has(num)) return null;
+  return `${num}º Ofício`;
+}
+
+function extrairCartoriosExplicitos(texto) {
+  const base = String(texto || '');
+  const encontrados = new Set();
+
+  // Padrões explícitos com "ofício"
+  const padroesOficio = [
+    /(\d{1,2})[º°]?\s*of[ií]cio/gi,
+    /acervo\s+do\s+(\d{1,2})[º°]?/gi,
+    /registrado\s+no\s+(\d{1,2})[º°]?/gi,
+    /registro\s+lavrado\s+no\s+(\d{1,2})[º°]?/gi,
+    /assento\s+pertence\s+ao\s+(\d{1,2})[º°]?/gi,
+  ];
+
+  for (const regex of padroesOficio) {
+    for (const match of base.matchAll(regex)) {
+      const num = Number(match[1]);
+      if (OFICIOS_VALIDOS.has(num)) {
+        encontrados.add(`${num}º Ofício`);
+      }
+    }
+  }
+
+  return Array.from(encontrados);
+}
 
 /**
  * Revisa e corrige texto usando Ollama local
@@ -25,14 +61,14 @@ async function revisarTexto(comunicado) {
     const prompt = promptDetectarCartorio(textoCompleto);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000); // 30s (prompt simples)
+    const timeout = setTimeout(() => controller.abort(), 45000); // 45s evita abort em máquinas mais lentas
 
     const response = await fetch('http://localhost:11434/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       signal: controller.signal,
       body: JSON.stringify({
-        model: 'qwen2.5:1.5b', // Modelo eficiente e rápido (986MB)
+        model: OLLAMA_MODEL,
         prompt: prompt,
         stream: false,
         options: {
@@ -60,6 +96,8 @@ async function revisarTexto(comunicado) {
     }
 
     const sugestoes = JSON.parse(jsonMatch[0]);
+    const cartoriosExplicitos = extrairCartoriosExplicitos(textoCompleto);
+    const cartorioIA = normalizarCartorio(sugestoes.cartorio_origem);
 
     // Aplicar correções
     const comunicadoRevisado = {
@@ -70,11 +108,19 @@ async function revisarTexto(comunicado) {
     // REGRA CRÍTICA: Detecção manual SEMPRE prevalece sobre IA
     // IA só preenche se não houver cartorio_origem já detectado
     // NUNCA sobrescrever valores das observações (OBSERVAÇÕES: 12, OBSERVAÇÕES: 26°, etc)
-    if (sugestoes.cartorio_origem && !comunicado.cartorio_origem) {
-      console.log(`✅ IA preencheu cartório: ${sugestoes.cartorio_origem} (não havia detecção manual)`);
-      comunicadoRevisado.cartorio_origem = sugestoes.cartorio_origem;
+    if (!comunicado.cartorio_origem) {
+      if (cartorioIA && cartoriosExplicitos.includes(cartorioIA)) {
+        console.log(`✅ IA validada por texto explícito: ${cartorioIA}`);
+        comunicadoRevisado.cartorio_origem = cartorioIA;
+      } else if (cartorioIA && !cartoriosExplicitos.includes(cartorioIA)) {
+        console.log(`⚠️ IA ignorada (cartório não explícito no texto): ${cartorioIA}`);
+      } else if (cartoriosExplicitos.length === 1) {
+        // fallback determinístico quando há uma única menção explícita
+        comunicadoRevisado.cartorio_origem = cartoriosExplicitos[0];
+        console.log(`✅ Fallback determinístico aplicou cartório: ${cartoriosExplicitos[0]}`);
+      }
     } else if (comunicado.cartorio_origem) {
-      console.log(`🔒 Cartório manual PRESERVADO: ${comunicado.cartorio_origem} (IA sugeriu: ${sugestoes.cartorio_origem || 'nada'})`);
+      console.log(`🔒 Cartório manual PRESERVADO: ${comunicado.cartorio_origem} (IA sugeriu: ${cartorioIA || 'nada'})`);
     }
 
     // Remover campo alertas se vazio
@@ -198,5 +244,6 @@ function detectarCartorioNasObservacoes(obs) {
 module.exports = {
   revisarTexto,
   checkOllama,
-  analisarProblemas
+  analisarProblemas,
+  OLLAMA_MODEL
 };

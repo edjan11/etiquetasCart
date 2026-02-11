@@ -1,5 +1,5 @@
 /**
- * Exportador JSON/CSV completo para comunicados de casamento
+ * Exportador JSON completo para comunicados de casamento
  * Extrai dataset estruturado com todos os campos e metadados
  */
 
@@ -208,100 +208,8 @@ function converterParaJSON(comunicados) {
   });
 }
 
-function converterParaCSV(comunicados) {
-  const jsonData = converterParaJSON(comunicados);
-  
-  // Header
-  const headers = [
-    "codigo_comunicacao",
-    "origem_cidade",
-    "origem_oficio",
-    "origem_uf",
-    "destino_cidade", 
-    "destino_oficio",
-    "destino_uf",
-    "data_casamento",
-    "livro_b",
-    "folha",
-    "termo",
-    "conjuge1_nome_antes",
-    "conjuge1_nome_depois",
-    "conjuge1_alterou_nome",
-    "conjuge2_nome_antes",
-    "conjuge2_nome_depois",
-    "conjuge2_alterou_nome",
-    "registro_origem_tipo",
-    "registro_origem_livro",
-    "registro_origem_folha",
-    "registro_origem_termo",
-    "filiacao_completa",
-    "data_nascimento",
-    "cartorio_origem",
-    "observacoes",
-    "tags_observacoes",
-    "data_emissao",
-    "operador",
-    "status",
-    "motivo_rejeicao",
-    "campos_faltantes",
-    "warnings",
-    "completeness_score"
-  ];
-  
-  // Rows
-  const rows = jsonData.map(item => {
-    return [
-      item.communication.code || "",
-      item.communication.from_registry.city || "",
-      item.communication.from_registry.office || "",
-      item.communication.from_registry.uf || "",
-      item.communication.to_registry.city || "",
-      item.communication.to_registry.office || "",
-      item.communication.to_registry.uf || "",
-      item.marriage.marriage_date || "",
-      item.marriage.book_b || "",
-      item.marriage.page || "",
-      item.marriage.term || "",
-      item.marriage.spouse_1.name_before || "",
-      item.marriage.spouse_1.name_after || "",
-      item.marriage.spouse_1.name_change_type || "",
-      item.marriage.spouse_2.name_before || "",
-      item.marriage.spouse_2.name_after || "",
-      item.marriage.spouse_2.name_change_type || "",
-      item.references.birth_reference.type || "",
-      item.references.birth_reference.book || "",
-      item.references.birth_reference.page || "",
-      item.references.birth_reference.term || "",
-      item.references.birth_reference.parents.full || "",
-      item.references.birth_reference.birth_date || "",
-      item.references.birth_reference.registry_office || "",
-      item.observations.raw || "",
-      item.observations.tags.join("; ") || "",
-      item.communication.issued_at || "",
-      item.communication.operator || "",
-      item.communication.status || "",
-      item.communication.rejection_reason || "",
-      item.data_quality.missing_fields.join("; ") || "",
-      item.data_quality.warnings.join("; ") || "",
-      item.data_quality.completeness_score || ""
-    ].map(field => {
-      // Escapar vírgulas e aspas para CSV
-      const str = String(field);
-      if (str.includes(",") || str.includes('"') || str.includes("\n")) {
-        return `"${str.replace(/"/g, '""')}"`;
-      }
-      return str;
-    });
-  });
-  
-  // Montar CSV
-  const csvLines = [headers.join(","), ...rows.map(row => row.join(","))];
-  return csvLines.join("\n");
-}
-
 module.exports = {
   converterParaJSON,
-  converterParaCSV,
   detectarStatus,
   detectarObito,
   detectarDivorcio,

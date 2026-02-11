@@ -10,8 +10,13 @@ const pdf = require("pdf-parse");
 const { processarTexto } = require("./src/parser/processarTexto");
 const gerarEtiqueta = require("./src/exporter/gerarEtiquetaCasamento");
 const { gerarEtiquetasPDF } = require("./src/exporter/etiquetas");
-const { revisarTexto, analisarProblemas, checkOllama } = require("./src/ai/revisor");
-const { converterParaJSON, converterParaCSV } = require("./src/exporter/exportarJSON");
+const {
+  revisarTexto,
+  analisarProblemas,
+  checkOllama,
+  OLLAMA_MODEL,
+} = require("./src/ai/revisor");
+const { converterParaJSON } = require("./src/exporter/exportarJSON");
 const Database = require("better-sqlite3");
 
 const dbPath = path.join(__dirname, "comunicados.db");
@@ -34,6 +39,15 @@ app.use((req, res, next) => {
 // ===============================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "views", "index.html"));
+});
+
+app.get("/ai-status", async (req, res) => {
+  try {
+    const aiAtivo = await checkOllama();
+    res.json({ aiAtivo, model: OLLAMA_MODEL });
+  } catch (err) {
+    res.status(500).json({ aiAtivo: false, model: OLLAMA_MODEL, erro: String(err?.message || err) });
+  }
 });
 
 // ===============================
@@ -356,7 +370,7 @@ app.post("/session/:id", (req, res) => {
 
 
 // ===============================
-// 📌 EXPORTAR JSON/CSV
+// 📌 EXPORTAR JSON
 // ===============================
 app.post("/exportar-json", express.json(), (req, res) => {
   try {
@@ -373,26 +387,6 @@ app.post("/exportar-json", express.json(), (req, res) => {
     res.send(JSON.stringify(jsonData, null, 2));
   } catch (error) {
     console.error("❌ Erro ao exportar JSON:", error);
-    res.status(500).json({ erro: error.message });
-  }
-});
-
-app.post("/exportar-csv", express.json(), (req, res) => {
-  try {
-    const { comunicados } = req.body;
-    
-    if (!comunicados || !Array.isArray(comunicados)) {
-      return res.status(400).json({ erro: "comunicados inválidos" });
-    }
-    
-    const csvData = converterParaCSV(comunicados);
-    
-    res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition", `attachment; filename="comunicados_${Date.now()}.csv"`);
-    // BOM para Excel reconhecer UTF-8
-    res.send("\uFEFF" + csvData);
-  } catch (error) {
-    console.error("❌ Erro ao exportar CSV:", error);
     res.status(500).json({ erro: error.message });
   }
 });

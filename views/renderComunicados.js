@@ -399,19 +399,41 @@ function definirCartorio(botao) {
 // 📌 Inferir tipo do comunicado
 // ===============================
 function inferirTipoComunicado(com) {
-  // se um dia você colocar com.tipo no parser, usamos direto
+  // 0) Tipo explícito (se já vier pronto)
   if (com.tipo) {
     const t = String(com.tipo).toLowerCase();
     if (t.includes('nasc')) return 'NASCIMENTO';
     if (t.includes('cas')) return 'CASAMENTO';
   }
 
-  const base = `${com.texto || ''}\n${com.parte2 || ''}`.toLowerCase();
+  // 1) REGRA FORTE: tipo do livro de origem
+  //    A = nascimento | B = casamento
+  const tipoLivroOrigem = String(com.tipo_livro_origem || '')
+    .trim()
+    .toUpperCase();
+  if (tipoLivroOrigem === 'A') return 'NASCIMENTO';
+  if (tipoLivroOrigem === 'B') return 'CASAMENTO';
+
+  // 2) REGRA FORTE: "Livro: A..." / "Livro: B..." no texto editável
+  const parte2 = String(com.parte2 || '');
+  const livroParte2 = parte2.match(/(?:^|\n)\s*Livro:\s*([AB])/i);
+  if (livroParte2) {
+    return livroParte2[1].toUpperCase() === 'A' ? 'NASCIMENTO' : 'CASAMENTO';
+  }
+
+  // 3) Sinais de nascimento (fallback)
+  const base = `${com.texto || ''}\n${parte2}`.toLowerCase();
+  if (/data\s+nascimento\s*:/i.test(parte2)) return 'NASCIMENTO';
+  if (/filia[cç][aã]o\s*:/i.test(parte2)) return 'NASCIMENTO';
 
   if (base.includes('nascimento registrado')) return 'NASCIMENTO';
   if (base.includes('certidão de nascimento')) return 'NASCIMENTO';
+  if (/\bele\s+registrad[oa]\b/i.test(base)) return 'NASCIMENTO';
+  if (/\bela\s+registrad[oa]\b/i.test(base)) return 'NASCIMENTO';
+  if (/\bele\s+foi\s+casad[oa]\b/i.test(base)) return 'CASAMENTO';
+  if (/\bela\s+foi\s+casad[oa]\b/i.test(base)) return 'CASAMENTO';
 
-  // default: a maioria é casamento
+  // default preservado
   return 'CASAMENTO';
 }
 
@@ -642,10 +664,10 @@ function mostrarAlertasIA(problemas, aiAtivo) {
 
   // Status do Ollama
   if (aiAtivo) {
-    statusIA.innerHTML = '✅ <strong>Ollama ativo</strong> - Revisão automática habilitada';
+    statusIA.innerHTML = '✅ <strong>Ollama ativo</strong> - Revisão automática habilitada (Qwen)';
     statusIA.style.color = '#155724';
   } else {
-    statusIA.innerHTML = '❌ <strong>Ollama inativo</strong> - Instale: <a href="https://ollama.com/download" target="_blank">ollama.com/download</a> → rode: <code>ollama pull llama3.2:1b</code>';
+    statusIA.innerHTML = '❌ <strong>Ollama inativo</strong> - Instale: <a href="https://ollama.com/download" target="_blank">ollama.com/download</a> → rode: <code>ollama pull qwen2.5:3b-instruct-q4_K_M</code>';
     statusIA.style.color = '#721c24';
   }
 

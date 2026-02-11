@@ -35,6 +35,12 @@ const listaConjuges = document.getElementById('listaConjuges');
 const exportarPDFBtn = document.getElementById('exportarPDF');
 const exportarRelatorioTxtBtn = document.getElementById('exportarRelatorioTxt');
 
+function setListaConjugesVisivel(visivel) {
+  listaConjuges.style.display = visivel ? 'block' : 'none';
+  document.body.classList.toggle('lista-open', visivel);
+  toggleListaNomes?.setAttribute('aria-expanded', visivel ? 'true' : 'false');
+}
+
 
 // ===============================
 // 🌙 Tema persistente
@@ -53,9 +59,8 @@ themeToggle.addEventListener('click', () => {
 
 // toggle da lista lateral de cônjuges
 toggleListaNomes.addEventListener('click', () => {
-  if (listaConjuges.style.display === 'none') {
-    listaConjuges.style.display = 'block';
-  } else {
-    listaConjuges.style.display = 'none';
-  }
+  const estaAberta = listaConjuges.style.display !== 'none';
+  setListaConjugesVisivel(!estaAberta);
 });
+
+setListaConjugesVisivel(false);
